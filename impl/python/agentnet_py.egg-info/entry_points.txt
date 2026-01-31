@@ -1,0 +1,2 @@
+[console_scripts]
+agentnet-vectors = agentnet_py.vectors:main

@@ -1,0 +1,11 @@
+pyproject.toml
+agentnet_py/__init__.py
+agentnet_py/cbor.py
+agentnet_py/crypto.py
+agentnet_py/vectors.py
+agentnet_py.egg-info/PKG-INFO
+agentnet_py.egg-info/SOURCES.txt
+agentnet_py.egg-info/dependency_links.txt
+agentnet_py.egg-info/entry_points.txt
+agentnet_py.egg-info/requires.txt
+agentnet_py.egg-info/top_level.txt
