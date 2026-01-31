@@ -1,0 +1,17 @@
+FROM rust:1.76-bookworm AS build
+WORKDIR /app
+COPY impl/rust ./impl/rust
+RUN cargo build --release --manifest-path impl/rust/Cargo.toml -p agentmesh -p anet-econ-verify
+
+FROM debian:bookworm-slim AS runtime
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates python3 && rm -rf /var/lib/apt/lists/*
+WORKDIR /opt/agentnet
+COPY --from=build /app/impl/rust/target/release/agentmesh /usr/local/bin/agentmesh
+COPY --from=build /app/impl/rust/target/release/anet-econ-verify /usr/local/bin/anet-econ-verify
+COPY infra/launch/validate-config.py /opt/agentnet/validate-config.py
+COPY infra/launch/render/agentmesh-entrypoint.py /opt/agentnet/agentmesh-entrypoint.py
+COPY infra/launch/render/index-sync.py /opt/agentnet/index-sync.py
+RUN chmod +x /opt/agentnet/agentmesh-entrypoint.py /opt/agentnet/index-sync.py /opt/agentnet/validate-config.py
+
+ENV RUST_LOG=info
+ENTRYPOINT ["python3", "/opt/agentnet/agentmesh-entrypoint.py"]

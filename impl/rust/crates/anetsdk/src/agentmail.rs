@@ -1,12 +1,12 @@
+use crate::markdown::validate_markdown_profile;
+use crate::schema::{
+    expect_bytes_len, expect_map, expect_text, expect_text_array, expect_u64, expect_u8,
+    get_optional, get_required,
+};
 use crate::signed::{split_signed_map, with_signature};
 use crate::{
     decode_canonical, encode_canonical, sha256, sign_ed25519_hash, verify_ed25519_hash, CborValue,
     Error,
-};
-use crate::markdown::validate_markdown_profile;
-use crate::schema::{
-    expect_bytes_len, expect_map, expect_text, expect_text_array, expect_u64, expect_u8, get_optional,
-    get_required,
 };
 
 const AGENTMAIL_SIG_KEY: u64 = 14;
@@ -114,7 +114,10 @@ pub fn decode_agentmail_message(data: &[u8]) -> Result<AgentMailMessage, Error> 
     parse_agentmail_message(&value)
 }
 
-pub fn build_agentmail_message(payload: &AgentMailMessagePayload, secret_key: &[u8]) -> Result<Vec<u8>, Error> {
+pub fn build_agentmail_message(
+    payload: &AgentMailMessagePayload,
+    secret_key: &[u8],
+) -> Result<Vec<u8>, Error> {
     payload.validate()?;
     let payload_value = payload.to_cbor()?;
     let payload_cbor = encode_canonical(&payload_value)?;
@@ -124,7 +127,10 @@ pub fn build_agentmail_message(payload: &AgentMailMessagePayload, secret_key: &[
     encode_canonical(&full)
 }
 
-pub fn verify_agentmail_message(data: &[u8], public_key: &[u8]) -> Result<AgentMailMessagePayload, Error> {
+pub fn verify_agentmail_message(
+    data: &[u8],
+    public_key: &[u8],
+) -> Result<AgentMailMessagePayload, Error> {
     let value = decode_canonical(data)?;
     let (payload_entries, signature) = split_signed_map(&value, AGENTMAIL_SIG_KEY)?;
     let payload_value = CborValue::Map(payload_entries);
@@ -146,7 +152,10 @@ impl AgentMailAttachment {
             return Err(Error::Cbor("attachment mime required"));
         }
         let mut entries = Vec::new();
-        entries.push((CborValue::Unsigned(0), CborValue::Bytes(self.content_hash.clone())));
+        entries.push((
+            CborValue::Unsigned(0),
+            CborValue::Bytes(self.content_hash.clone()),
+        ));
         entries.push((CborValue::Unsigned(1), CborValue::Unsigned(self.size_bytes)));
         entries.push((CborValue::Unsigned(2), CborValue::Text(self.mime.clone())));
         if let Some(addrs) = &self.retrieval {
@@ -166,12 +175,23 @@ impl AgentMailMessagePayload {
     pub fn to_cbor(&self) -> Result<CborValue, Error> {
         self.validate()?;
         let mut entries = Vec::new();
-        entries.push((CborValue::Unsigned(0), CborValue::Unsigned(self.version as u64)));
-        entries.push((CborValue::Unsigned(1), CborValue::Text(self.message_id.clone())));
+        entries.push((
+            CborValue::Unsigned(0),
+            CborValue::Unsigned(self.version as u64),
+        ));
+        entries.push((
+            CborValue::Unsigned(1),
+            CborValue::Text(self.message_id.clone()),
+        ));
         entries.push((CborValue::Unsigned(2), CborValue::Text(self.sender.clone())));
         entries.push((
             CborValue::Unsigned(3),
-            CborValue::Array(self.recipients.iter().map(|s| CborValue::Text(s.clone())).collect()),
+            CborValue::Array(
+                self.recipients
+                    .iter()
+                    .map(|s| CborValue::Text(s.clone()))
+                    .collect(),
+            ),
         ));
         if let Some(thread_id) = &self.thread_id {
             entries.push((CborValue::Unsigned(4), CborValue::Text(thread_id.clone())));
@@ -182,7 +202,10 @@ impl AgentMailMessagePayload {
         if let Some(subject) = &self.subject {
             entries.push((CborValue::Unsigned(6), CborValue::Text(subject.clone())));
         }
-        entries.push((CborValue::Unsigned(7), CborValue::Text(self.markdown.clone())));
+        entries.push((
+            CborValue::Unsigned(7),
+            CborValue::Text(self.markdown.clone()),
+        ));
         if let Some(attachments) = &self.attachments {
             let mut items = Vec::with_capacity(attachments.len());
             for attachment in attachments {
@@ -193,13 +216,23 @@ impl AgentMailMessagePayload {
         if let Some(intent_hashes) = &self.intent_hashes {
             entries.push((
                 CborValue::Unsigned(9),
-                CborValue::Array(intent_hashes.iter().map(|h| CborValue::Bytes(h.clone())).collect()),
+                CborValue::Array(
+                    intent_hashes
+                        .iter()
+                        .map(|h| CborValue::Bytes(h.clone()))
+                        .collect(),
+                ),
             ));
         }
         if let Some(receipt_hashes) = &self.receipt_hashes {
             entries.push((
                 CborValue::Unsigned(10),
-                CborValue::Array(receipt_hashes.iter().map(|h| CborValue::Bytes(h.clone())).collect()),
+                CborValue::Array(
+                    receipt_hashes
+                        .iter()
+                        .map(|h| CborValue::Bytes(h.clone()))
+                        .collect(),
+                ),
             ));
         }
         if let Some(metadata) = &self.metadata {

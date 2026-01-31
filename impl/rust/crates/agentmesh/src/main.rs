@@ -135,7 +135,8 @@ async fn main() -> Result<()> {
                 None
             };
             mesh.publish_envelope(&topic, payload_type, payload, proof)?;
-            mesh.run_for(std::time::Duration::from_secs(settle_seconds)).await?;
+            mesh.run_for(std::time::Duration::from_secs(settle_seconds))
+                .await?;
         }
         Commands::DhtPut {
             config,
@@ -152,7 +153,8 @@ async fn main() -> Result<()> {
                 .with_context(|| format!("read record {}", record_cbor.display()))?;
             let expires = validate_record(&record_type, &record_bytes, pubkey_hex.as_deref())?;
             mesh.put_record(record_key, record_bytes, expires)?;
-            mesh.run_for(std::time::Duration::from_secs(settle_seconds)).await?;
+            mesh.run_for(std::time::Duration::from_secs(settle_seconds))
+                .await?;
         }
         Commands::Kill {
             config,
@@ -171,14 +173,19 @@ async fn main() -> Result<()> {
             let mut mesh = build_mesh(cfg, keys)?;
             let kill_payload = build_kill_switch_payload(&kill_key, &action, &reason)?;
             mesh.publish_envelope(&kill_topic, kill_type, kill_payload, None)?;
-            mesh.run_for(std::time::Duration::from_secs(settle_seconds)).await?;
+            mesh.run_for(std::time::Duration::from_secs(settle_seconds))
+                .await?;
         }
     }
 
     Ok(())
 }
 
-fn build_kill_switch_payload(kill_key: &PathBuf, action: &str, reason: &str) -> Result<anetsdk::CborValue> {
+fn build_kill_switch_payload(
+    kill_key: &PathBuf,
+    action: &str,
+    reason: &str,
+) -> Result<anetsdk::CborValue> {
     let action_code = match action {
         "engage" => 0u8,
         "release" => 1u8,
@@ -203,25 +210,56 @@ fn build_kill_switch_payload(kill_key: &PathBuf, action: &str, reason: &str) -> 
             .as_secs()
     };
     let payload = anetsdk::CborValue::Map(vec![
-        (anetsdk::CborValue::Unsigned(0), anetsdk::CborValue::Unsigned(action_code as u64)),
-        (anetsdk::CborValue::Unsigned(1), anetsdk::CborValue::Text(reason.to_string())),
-        (anetsdk::CborValue::Unsigned(2), anetsdk::CborValue::Unsigned(ts)),
-        (anetsdk::CborValue::Unsigned(3), anetsdk::CborValue::Bytes(nonce.to_vec())),
+        (
+            anetsdk::CborValue::Unsigned(0),
+            anetsdk::CborValue::Unsigned(action_code as u64),
+        ),
+        (
+            anetsdk::CborValue::Unsigned(1),
+            anetsdk::CborValue::Text(reason.to_string()),
+        ),
+        (
+            anetsdk::CborValue::Unsigned(2),
+            anetsdk::CborValue::Unsigned(ts),
+        ),
+        (
+            anetsdk::CborValue::Unsigned(3),
+            anetsdk::CborValue::Bytes(nonce.to_vec()),
+        ),
     ]);
     let payload_cbor = anetsdk::encode_canonical(&payload)?;
     let hash = anetsdk::sha256(&payload_cbor);
     let signature = anetsdk::sign_ed25519_hash(&secret, &hash)?;
     let signed_payload = anetsdk::CborValue::Map(vec![
-        (anetsdk::CborValue::Unsigned(0), anetsdk::CborValue::Unsigned(action_code as u64)),
-        (anetsdk::CborValue::Unsigned(1), anetsdk::CborValue::Text(reason.to_string())),
-        (anetsdk::CborValue::Unsigned(2), anetsdk::CborValue::Unsigned(ts)),
-        (anetsdk::CborValue::Unsigned(3), anetsdk::CborValue::Bytes(nonce.to_vec())),
-        (anetsdk::CborValue::Unsigned(4), anetsdk::CborValue::Bytes(signature)),
+        (
+            anetsdk::CborValue::Unsigned(0),
+            anetsdk::CborValue::Unsigned(action_code as u64),
+        ),
+        (
+            anetsdk::CborValue::Unsigned(1),
+            anetsdk::CborValue::Text(reason.to_string()),
+        ),
+        (
+            anetsdk::CborValue::Unsigned(2),
+            anetsdk::CborValue::Unsigned(ts),
+        ),
+        (
+            anetsdk::CborValue::Unsigned(3),
+            anetsdk::CborValue::Bytes(nonce.to_vec()),
+        ),
+        (
+            anetsdk::CborValue::Unsigned(4),
+            anetsdk::CborValue::Bytes(signature),
+        ),
     ]);
     Ok(signed_payload)
 }
 
-fn validate_record(record_type: &str, record_bytes: &[u8], pubkey_hex: Option<&str>) -> Result<Option<std::time::Instant>> {
+fn validate_record(
+    record_type: &str,
+    record_bytes: &[u8],
+    pubkey_hex: Option<&str>,
+) -> Result<Option<std::time::Instant>> {
     let now = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap_or_else(|_| std::time::Duration::from_secs(0))
@@ -268,7 +306,8 @@ fn validate_record(record_type: &str, record_bytes: &[u8], pubkey_hex: Option<&s
 }
 
 fn pubkey_from_hex(pubkey_hex: Option<&str>) -> Result<Vec<u8>> {
-    let pubkey_hex = pubkey_hex.ok_or_else(|| anyhow::anyhow!("pubkey_hex required for this record type"))?;
+    let pubkey_hex =
+        pubkey_hex.ok_or_else(|| anyhow::anyhow!("pubkey_hex required for this record type"))?;
     let bytes = hex::decode(pubkey_hex).context("decode pubkey_hex")?;
     if bytes.len() != 32 {
         anyhow::bail!("pubkey_hex must be 32 bytes");
@@ -285,5 +324,7 @@ fn to_instant(expires_ts: u64) -> Result<Option<std::time::Instant>> {
         return Ok(None);
     }
     let delta = expires_ts - now;
-    Ok(Some(std::time::Instant::now() + std::time::Duration::from_secs(delta)))
+    Ok(Some(
+        std::time::Instant::now() + std::time::Duration::from_secs(delta),
+    ))
 }

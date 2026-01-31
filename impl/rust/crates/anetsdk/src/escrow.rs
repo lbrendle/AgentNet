@@ -1,4 +1,6 @@
-use crate::schema::{expect_bytes_len, expect_map, expect_text, expect_u64, expect_u8, get_optional, get_required};
+use crate::schema::{
+    expect_bytes_len, expect_map, expect_text, expect_u64, expect_u8, get_optional, get_required,
+};
 use crate::{CborValue, Error};
 
 #[derive(Debug, Clone)]
@@ -85,38 +87,74 @@ pub fn parse_escrow_resolve_payload(value: &CborValue) -> Result<EscrowResolvePa
 
 pub fn escrow_lock_payload_to_cbor(payload: &EscrowLockPayload) -> CborValue {
     CborValue::Map(vec![
-        (CborValue::Unsigned(0), CborValue::Text(payload.escrow_id.clone())),
-        (CborValue::Unsigned(1), CborValue::Text(payload.payer.clone())),
-        (CborValue::Unsigned(2), CborValue::Text(payload.payee.clone())),
+        (
+            CborValue::Unsigned(0),
+            CborValue::Text(payload.escrow_id.clone()),
+        ),
+        (
+            CborValue::Unsigned(1),
+            CborValue::Text(payload.payer.clone()),
+        ),
+        (
+            CborValue::Unsigned(2),
+            CborValue::Text(payload.payee.clone()),
+        ),
         (CborValue::Unsigned(3), CborValue::Unsigned(payload.amount)),
-        (CborValue::Unsigned(4), CborValue::Text(payload.currency.clone())),
+        (
+            CborValue::Unsigned(4),
+            CborValue::Text(payload.currency.clone()),
+        ),
         (CborValue::Unsigned(5), payload.release_condition.clone()),
-        (CborValue::Unsigned(6), CborValue::Unsigned(payload.dispute_window_sec)),
+        (
+            CborValue::Unsigned(6),
+            CborValue::Unsigned(payload.dispute_window_sec),
+        ),
         (CborValue::Unsigned(7), CborValue::Unsigned(payload.expiry)),
     ])
 }
 
 pub fn escrow_release_payload_to_cbor(payload: &EscrowReleasePayload) -> CborValue {
     CborValue::Map(vec![
-        (CborValue::Unsigned(0), CborValue::Text(payload.escrow_id.clone())),
-        (CborValue::Unsigned(1), CborValue::Bytes(payload.evidence_receipt_hash.clone())),
+        (
+            CborValue::Unsigned(0),
+            CborValue::Text(payload.escrow_id.clone()),
+        ),
+        (
+            CborValue::Unsigned(1),
+            CborValue::Bytes(payload.evidence_receipt_hash.clone()),
+        ),
         (CborValue::Unsigned(2), CborValue::Unsigned(payload.ts)),
     ])
 }
 
 pub fn escrow_dispute_payload_to_cbor(payload: &EscrowDisputePayload) -> CborValue {
     CborValue::Map(vec![
-        (CborValue::Unsigned(0), CborValue::Text(payload.escrow_id.clone())),
-        (CborValue::Unsigned(1), CborValue::Text(payload.reason.clone())),
-        (CborValue::Unsigned(2), CborValue::Bytes(payload.evidence_anchor_or_receipt.clone())),
+        (
+            CborValue::Unsigned(0),
+            CborValue::Text(payload.escrow_id.clone()),
+        ),
+        (
+            CborValue::Unsigned(1),
+            CborValue::Text(payload.reason.clone()),
+        ),
+        (
+            CborValue::Unsigned(2),
+            CborValue::Bytes(payload.evidence_anchor_or_receipt.clone()),
+        ),
         (CborValue::Unsigned(3), CborValue::Unsigned(payload.ts)),
     ])
 }
 
 pub fn escrow_resolve_payload_to_cbor(payload: &EscrowResolvePayload) -> CborValue {
     let mut entries = vec![
-        (CborValue::Unsigned(0), CborValue::Text(payload.escrow_id.clone())),
-        (CborValue::Unsigned(1), CborValue::Unsigned(payload.outcome as u64)),
+        (
+            CborValue::Unsigned(0),
+            CborValue::Text(payload.escrow_id.clone()),
+        ),
+        (
+            CborValue::Unsigned(1),
+            CborValue::Unsigned(payload.outcome as u64),
+        ),
         (CborValue::Unsigned(3), CborValue::Unsigned(payload.ts)),
     ];
     if let Some(amount) = payload.split_amount_to_payee {

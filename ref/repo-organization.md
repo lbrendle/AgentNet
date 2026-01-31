@@ -32,6 +32,7 @@ This document defines the repository structure, ownership boundaries, and artifa
       anetsdk
       anet-vectors
       agentmesh
+      agentindex
       anet-econ-verify
   /python
   /ts
@@ -39,20 +40,11 @@ This document defines the repository structure, ownership boundaries, and artifa
 
 /tools
   conformance-runner
-  vector-generator
-  interop-harness
-  release-signer
 
 /templates
-  agentic-site
-  pocket-host
-  marketplace
-  agent-runtime
 
 /infra
-  deployment
-  monitoring
-  security
+  launch
 
 /governance
   proposals

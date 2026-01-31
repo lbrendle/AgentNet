@@ -1,44 +1,50 @@
 use crate::config::{
     AgentMailConfig, AgentRecordConfig, CommunityRecordConfig, Config, DhtConfig, HandshakeConfig,
-    KillSwitchConfig, PubSubConfig, RateLimitConfig, SenderKeyConfig, ServiceRecordConfig, TxConfig,
+    KillSwitchConfig, PubSubConfig, RateLimitConfig, SenderKeyConfig, ServiceRecordConfig,
+    TxConfig,
 };
 use crate::keys::KeyMaterial;
 use crate::state::SequenceStore;
 use crate::tx::{ReceiptSpec, TxEngine};
-use anyhow::{Context, Result};
+use ::futures::prelude::*;
 use anetsdk::{
     build_agent_record, build_community_record, build_nodehello, build_pubsub_envelope,
-    build_service_record, encode_canonical, sha256, sign_ed25519_hash, verify_ed25519_hash,
-    verify_agentmail_message, verify_nodehello, verify_pubsub_envelope, AgentRecordPayload,
-    CborValue, CommunityRecordPayload, EconomicProof, NodeHelloPayload,
-    PubSubEnvelopePayload, ReceiptLog, ServiceRecordPayload,
+    build_service_record, encode_canonical, sha256, sign_ed25519_hash, verify_agentmail_message,
+    verify_ed25519_hash, verify_nodehello, verify_pubsub_envelope, AgentRecordPayload, CborValue,
+    CommunityRecordPayload, EconomicProof, NodeHelloPayload, PubSubEnvelopePayload, ReceiptLog,
+    ServiceRecordPayload,
 };
+use anyhow::{Context, Result};
 use async_trait::async_trait;
-use ::futures::prelude::*;
 use base64::engine::general_purpose::STANDARD as BASE64;
 use base64::Engine;
-use serde::Serialize;
+use libp2p::core::muxing::StreamMuxerBox;
+use libp2p::core::transport::{Boxed, Transport};
+use libp2p::core::upgrade;
 use libp2p::gossipsub::{self, IdentTopic, MessageAuthenticity, ValidationMode};
 use libp2p::identify;
 use libp2p::kad::{self, store::MemoryStore};
+use libp2p::noise;
 use libp2p::request_response::{self};
 use libp2p::swarm::{NetworkBehaviour, StreamProtocol, Swarm, SwarmEvent};
+use libp2p::tcp;
+use libp2p::websocket;
+use libp2p::yamux;
 use libp2p::{identity, Multiaddr, PeerId};
-use libp2p::core::transport::Transport;
-use libp2p::core::muxing::StreamMuxerBox;
 use rand::rngs::OsRng;
 use rand::RngCore;
+use serde::Serialize;
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::fs;
 use std::fs::{File, OpenOptions};
 use std::io::{BufRead, BufReader, Write};
 use std::path::PathBuf;
-use std::collections::{HashMap, HashSet, VecDeque};
 use std::process::Stdio;
+use std::time::Instant as StdInstant;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::io::AsyncWriteExt;
 use tokio::process::Command;
 use tokio::time::Duration;
-use std::time::Instant as StdInstant;
 use tracing::{info, warn};
 
 const HANDSHAKE_PROTOCOL: &str = "agentnet/handshake/1.0.0";
@@ -56,25 +62,42 @@ impl request_response::Codec for NodeHelloCodec {
     type Request = Vec<u8>;
     type Response = Vec<u8>;
 
-    async fn read_request<T>(&mut self, _: &Self::Protocol, io: &mut T) -> std::io::Result<Self::Request>
+    async fn read_request<T>(
+        &mut self,
+        _: &Self::Protocol,
+        io: &mut T,
+    ) -> std::io::Result<Self::Request>
     where
         T: AsyncRead + Unpin + Send,
     {
         let mut buf = Vec::new();
-        io.take(MAX_HANDSHAKE_MSG_BYTES as u64).read_to_end(&mut buf).await?;
+        io.take(MAX_HANDSHAKE_MSG_BYTES as u64)
+            .read_to_end(&mut buf)
+            .await?;
         Ok(buf)
     }
 
-    async fn read_response<T>(&mut self, _: &Self::Protocol, io: &mut T) -> std::io::Result<Self::Response>
+    async fn read_response<T>(
+        &mut self,
+        _: &Self::Protocol,
+        io: &mut T,
+    ) -> std::io::Result<Self::Response>
     where
         T: AsyncRead + Unpin + Send,
     {
         let mut buf = Vec::new();
-        io.take(MAX_HANDSHAKE_MSG_BYTES as u64).read_to_end(&mut buf).await?;
+        io.take(MAX_HANDSHAKE_MSG_BYTES as u64)
+            .read_to_end(&mut buf)
+            .await?;
         Ok(buf)
     }
 
-    async fn write_request<T>(&mut self, _: &Self::Protocol, io: &mut T, data: Self::Request) -> std::io::Result<()>
+    async fn write_request<T>(
+        &mut self,
+        _: &Self::Protocol,
+        io: &mut T,
+        data: Self::Request,
+    ) -> std::io::Result<()>
     where
         T: AsyncWrite + Unpin + Send,
     {
@@ -82,7 +105,12 @@ impl request_response::Codec for NodeHelloCodec {
         Ok(())
     }
 
-    async fn write_response<T>(&mut self, _: &Self::Protocol, io: &mut T, data: Self::Response) -> std::io::Result<()>
+    async fn write_response<T>(
+        &mut self,
+        _: &Self::Protocol,
+        io: &mut T,
+        data: Self::Response,
+    ) -> std::io::Result<()>
     where
         T: AsyncWrite + Unpin + Send,
     {
@@ -219,8 +247,7 @@ impl NodeHelloTemplate {
             time: unix_time(),
             nonce: nonce.to_vec(),
         };
-        build_nodehello(&payload, &self.secret_key)
-            .context("build nodehello")
+        build_nodehello(&payload, &self.secret_key).context("build nodehello")
     }
 }
 
@@ -237,9 +264,7 @@ pub fn build_mesh(config: Config, keys: KeyMaterial) -> Result<MeshNode> {
     gossipsub_config.max_transmit_size(1024 * 1024);
     let gossipsub = gossipsub::Behaviour::new(
         MessageAuthenticity::Signed(libp2p_keypair.clone()),
-        gossipsub_config
-            .build()
-            .context("build gossipsub config")?,
+        gossipsub_config.build().context("build gossipsub config")?,
     )
     .map_err(|err| anyhow::anyhow!(err))?;
 
@@ -254,7 +279,10 @@ pub fn build_mesh(config: Config, keys: KeyMaterial) -> Result<MeshNode> {
         req_cfg,
     );
 
-    let identify = identify::Behaviour::new(identify::Config::new(HANDSHAKE_STREAM_PROTOCOL.to_string(), libp2p_keypair.public()));
+    let identify = identify::Behaviour::new(identify::Config::new(
+        HANDSHAKE_STREAM_PROTOCOL.to_string(),
+        libp2p_keypair.public(),
+    ));
 
     let behaviour = MeshBehaviour {
         gossipsub,
@@ -263,10 +291,7 @@ pub fn build_mesh(config: Config, keys: KeyMaterial) -> Result<MeshNode> {
         identify,
     };
 
-    let quic_config = libp2p::quic::Config::new(&libp2p_keypair);
-    let transport = libp2p::quic::tokio::Transport::new(quic_config)
-        .map(|(peer_id, conn), _| (peer_id, StreamMuxerBox::new(conn)))
-        .boxed();
+    let transport = build_transport(&config, &libp2p_keypair)?;
     let mut swarm = Swarm::new(
         transport,
         behaviour,
@@ -275,16 +300,27 @@ pub fn build_mesh(config: Config, keys: KeyMaterial) -> Result<MeshNode> {
     );
 
     for addr in &config.listen_addrs {
-        let multiaddr: Multiaddr = addr.parse().with_context(|| format!("invalid listen addr {addr}"))?;
-        swarm.listen_on(multiaddr).with_context(|| format!("listen on {addr}"))?;
+        let multiaddr: Multiaddr = addr
+            .parse()
+            .with_context(|| format!("invalid listen addr {addr}"))?;
+        swarm
+            .listen_on(multiaddr)
+            .with_context(|| format!("listen on {addr}"))?;
     }
 
     for addr in &config.bootstrap {
-        let multiaddr: Multiaddr = addr.parse().with_context(|| format!("invalid bootstrap addr {addr}"))?;
-        swarm.dial(multiaddr).with_context(|| format!("dial {addr}"))?;
+        let multiaddr: Multiaddr = addr
+            .parse()
+            .with_context(|| format!("invalid bootstrap addr {addr}"))?;
+        swarm
+            .dial(multiaddr)
+            .with_context(|| format!("dial {addr}"))?;
     }
 
-    let node_id = config.node_id.clone().unwrap_or_else(|| peer_id.to_string());
+    let node_id = config
+        .node_id
+        .clone()
+        .unwrap_or_else(|| peer_id.to_string());
     let protocols = config.protocols_or_default();
     let roles = config.roles_or_default();
     let features = config.features.to_cbor();
@@ -327,6 +363,56 @@ pub fn build_mesh(config: Config, keys: KeyMaterial) -> Result<MeshNode> {
         dht,
         peer_hellos: HashMap::new(),
     })
+}
+
+fn build_transport(
+    config: &Config,
+    keypair: &identity::Keypair,
+) -> Result<Boxed<(PeerId, StreamMuxerBox)>> {
+    let transports = config.transports_or_default();
+    let mut enabled = Vec::new();
+    for name in transports {
+        match name.as_str() {
+            "quic" => enabled.push(build_quic_transport(keypair)?),
+            "ws" | "websocket" => enabled.push(build_ws_transport(keypair)?),
+            _ => anyhow::bail!("unsupported transport: {name}"),
+        }
+    }
+    let mut iter = enabled.into_iter();
+    let Some(first) = iter.next() else {
+        anyhow::bail!("no transports enabled");
+    };
+    let combined = iter.fold(first, |acc, transport| {
+        acc.or_transport(transport)
+            .map(|either, _| match either {
+                futures::future::Either::Left(value) => value,
+                futures::future::Either::Right(value) => value,
+            })
+            .boxed()
+    });
+    Ok(combined)
+}
+
+fn build_quic_transport(keypair: &identity::Keypair) -> Result<Boxed<(PeerId, StreamMuxerBox)>> {
+    let quic_config = libp2p::quic::Config::new(keypair);
+    Ok(libp2p::quic::tokio::Transport::new(quic_config)
+        .map(|(peer_id, conn), _| (peer_id, StreamMuxerBox::new(conn)))
+        .boxed())
+}
+
+fn build_ws_transport(keypair: &identity::Keypair) -> Result<Boxed<(PeerId, StreamMuxerBox)>> {
+    let tcp_transport = tcp::tokio::Transport::new(tcp::Config::default().nodelay(true));
+    let dns_tcp =
+        libp2p::dns::tokio::Transport::system(tcp_transport).context("init dns transport")?;
+    let ws_transport = websocket::WsConfig::new(dns_tcp);
+    let noise_config =
+        noise::Config::new(keypair).map_err(|err| anyhow::anyhow!("noise config: {err}"))?;
+    let yamux_config = yamux::Config::default();
+    Ok(ws_transport
+        .upgrade(upgrade::Version::V1)
+        .authenticate(noise_config)
+        .multiplex(yamux_config)
+        .boxed())
 }
 
 impl MeshNode {
@@ -424,7 +510,12 @@ impl MeshNode {
         Ok(())
     }
 
-    pub fn put_record(&mut self, key: String, value: Vec<u8>, expires: Option<std::time::Instant>) -> Result<()> {
+    pub fn put_record(
+        &mut self,
+        key: String,
+        value: Vec<u8>,
+        expires: Option<std::time::Instant>,
+    ) -> Result<()> {
         if self.kill_switch_engaged {
             anyhow::bail!("kill switch engaged: dht publish blocked");
         }
@@ -469,8 +560,14 @@ impl MeshNode {
     async fn handle_behaviour_event(&mut self, event: MeshBehaviourEvent) -> Result<()> {
         match event {
             MeshBehaviourEvent::Gossipsub(event) => {
-                if let gossipsub::Event::Message { propagation_source, message_id, message } = event {
-                    self.handle_gossipsub_message(propagation_source, message_id, message).await?;
+                if let gossipsub::Event::Message {
+                    propagation_source,
+                    message_id,
+                    message,
+                } = event
+                {
+                    self.handle_gossipsub_message(propagation_source, message_id, message)
+                        .await?;
                 }
             }
             MeshBehaviourEvent::RequestResponse(event) => {
@@ -503,10 +600,15 @@ impl MeshNode {
         Ok(())
     }
 
-    fn handle_request_response(&mut self, event: request_response::Event<Vec<u8>, Vec<u8>>) -> Result<()> {
+    fn handle_request_response(
+        &mut self,
+        event: request_response::Event<Vec<u8>, Vec<u8>>,
+    ) -> Result<()> {
         match event {
             request_response::Event::Message { peer, message } => match message {
-                request_response::Message::Request { request, channel, .. } => {
+                request_response::Message::Request {
+                    request, channel, ..
+                } => {
                     if let Err(err) = self.handle_nodehello(peer, &request) {
                         warn!("nodehello request invalid from {peer}: {err:?}");
                     }
@@ -692,10 +794,7 @@ impl MeshNode {
                                 unix_time(),
                             )?;
                             if !decision.accept {
-                                let reason = decision
-                                    .reason
-                                    .as_deref()
-                                    .unwrap_or("tx rejected");
+                                let reason = decision.reason.as_deref().unwrap_or("tx rejected");
                                 if let Err(err) = self.emit_policy_decision(
                                     "reject",
                                     reason,
@@ -747,11 +846,7 @@ impl MeshNode {
     fn log_pubsub_payload(&self, payload: &PubSubEnvelopePayload) {
         info!(
             "pubsub payload topic={} sender={} type={} seq={} ts={}",
-            payload.topic,
-            payload.sender,
-            payload.payload_type,
-            payload.seq,
-            payload.ts
+            payload.topic, payload.sender, payload.payload_type, payload.seq, payload.ts
         );
     }
 
@@ -777,12 +872,24 @@ impl MeshNode {
         }
 
         let mut details = Vec::new();
-        details.push((CborValue::Unsigned(0), CborValue::Text(decision.to_string())));
+        details.push((
+            CborValue::Unsigned(0),
+            CborValue::Text(decision.to_string()),
+        ));
         details.push((CborValue::Unsigned(1), CborValue::Text(reason.to_string())));
         if let Some(payload) = payload {
-            details.push((CborValue::Unsigned(2), CborValue::Text(payload.topic.clone())));
-            details.push((CborValue::Unsigned(3), CborValue::Text(payload.sender.clone())));
-            details.push((CborValue::Unsigned(4), CborValue::Unsigned(payload.payload_type as u64)));
+            details.push((
+                CborValue::Unsigned(2),
+                CborValue::Text(payload.topic.clone()),
+            ));
+            details.push((
+                CborValue::Unsigned(3),
+                CborValue::Text(payload.sender.clone()),
+            ));
+            details.push((
+                CborValue::Unsigned(4),
+                CborValue::Unsigned(payload.payload_type as u64),
+            ));
             details.push((CborValue::Unsigned(5), CborValue::Unsigned(payload.seq)));
             details.push((CborValue::Unsigned(6), CborValue::Unsigned(payload.ts)));
         }
@@ -817,10 +924,19 @@ impl MeshNode {
             return Ok(());
         }
         let details = CborValue::Map(vec![
-            (CborValue::Unsigned(0), CborValue::Unsigned(payload.action as u64)),
-            (CborValue::Unsigned(1), CborValue::Text(payload.reason.clone())),
+            (
+                CborValue::Unsigned(0),
+                CborValue::Unsigned(payload.action as u64),
+            ),
+            (
+                CborValue::Unsigned(1),
+                CborValue::Text(payload.reason.clone()),
+            ),
             (CborValue::Unsigned(2), CborValue::Unsigned(payload.ts)),
-            (CborValue::Unsigned(3), CborValue::Bytes(payload.nonce.clone())),
+            (
+                CborValue::Unsigned(3),
+                CborValue::Bytes(payload.nonce.clone()),
+            ),
         ]);
         Self::emit_receipt_with(
             state,
@@ -862,7 +978,10 @@ impl MeshNode {
         let auth = CborValue::Map(vec![
             (CborValue::Unsigned(0), CborValue::Array(Vec::new())),
             (CborValue::Unsigned(1), CborValue::Null),
-            (CborValue::Unsigned(2), CborValue::Bytes(state.policy_hash.to_vec())),
+            (
+                CborValue::Unsigned(2),
+                CborValue::Bytes(state.policy_hash.to_vec()),
+            ),
         ]);
         let prev_hash = state.log.last_hash().to_vec();
         let seq = state.log.last_seq().saturating_add(1);
@@ -934,9 +1053,7 @@ impl MeshNode {
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .kill_on_drop(true);
-        let mut child = command
-            .spawn()
-            .context("spawn economic proof validator")?;
+        let mut child = command.spawn().context("spawn economic proof validator")?;
         if let Some(mut stdin) = child.stdin.take() {
             stdin
                 .write_all(&input)
@@ -944,7 +1061,8 @@ impl MeshNode {
                 .context("write economic proof request")?;
         }
         let timeout = self.pubsub.economic_proof_validator_timeout_ms();
-        let output = tokio::time::timeout(Duration::from_millis(timeout), child.wait_with_output()).await;
+        let output =
+            tokio::time::timeout(Duration::from_millis(timeout), child.wait_with_output()).await;
         match output {
             Ok(Ok(result)) => {
                 if result.status.success() {
@@ -1023,10 +1141,7 @@ impl MeshNode {
             return Ok(None);
         }
         let node_ids = vec![self.nodehello_template.node_id.clone()];
-        let contact = anetsdk::Contact {
-            node_ids,
-            addrs,
-        };
+        let contact = anetsdk::Contact { node_ids, addrs };
         let mut pubkeys = Vec::new();
         if !config.agent_pubkeys_hex.is_empty() {
             for hex_key in &config.agent_pubkeys_hex {
@@ -1059,7 +1174,8 @@ impl MeshNode {
         }
         let pricing = match &config.pricing_cbor_path {
             Some(path) => {
-                let bytes = std::fs::read(path).with_context(|| format!("read pricing {}", path.display()))?;
+                let bytes = std::fs::read(path)
+                    .with_context(|| format!("read pricing {}", path.display()))?;
                 Some(anetsdk::decode_canonical(&bytes)?)
             }
             None => None,
@@ -1085,8 +1201,9 @@ impl MeshNode {
         }
         let economics_bytes = std::fs::read(&config.economics_cbor_path)
             .with_context(|| format!("read economics {}", config.economics_cbor_path.display()))?;
-        let governance_bytes = std::fs::read(&config.governance_cbor_path)
-            .with_context(|| format!("read governance {}", config.governance_cbor_path.display()))?;
+        let governance_bytes = std::fs::read(&config.governance_cbor_path).with_context(|| {
+            format!("read governance {}", config.governance_cbor_path.display())
+        })?;
         let payload = CommunityRecordPayload {
             community_id: config.community_id.clone(),
             controller: config
@@ -1233,7 +1350,10 @@ impl MeshNode {
             }
         }
 
-        match state.seen.record(&message_payload.message_id, message_payload.ts) {
+        match state
+            .seen
+            .record(&message_payload.message_id, message_payload.ts)
+        {
             Ok(false) => {
                 let _ = self.emit_policy_decision(
                     "reject",
@@ -1391,7 +1511,11 @@ impl MeshNode {
             anyhow::bail!("kill switch topic mismatch");
         }
         let payload = parse_kill_switch_payload(&envelope.payload)?;
-        verify_kill_switch_payload(&payload, &kill_switch.pubkey, kill_switch.config.max_clock_skew_sec())?;
+        verify_kill_switch_payload(
+            &payload,
+            &kill_switch.pubkey,
+            kill_switch.config.max_clock_skew_sec(),
+        )?;
         if payload.nonce.len() != 16 {
             anyhow::bail!("invalid kill switch nonce length");
         }
@@ -1456,7 +1580,10 @@ fn economics_from_proof(proof: Option<&EconomicProof>) -> Result<CborValue> {
     let proof_hash = sha256(&proof_cbor);
     Ok(CborValue::Map(vec![
         (CborValue::Unsigned(0), CborValue::Unsigned(proof_type)),
-        (CborValue::Unsigned(1), CborValue::Bytes(proof_hash.to_vec())),
+        (
+            CborValue::Unsigned(1),
+            CborValue::Bytes(proof_hash.to_vec()),
+        ),
     ]))
 }
 
@@ -1559,14 +1686,19 @@ fn instant_from_unix(expires_ts: u64) -> Result<Option<std::time::Instant>> {
         return Ok(None);
     }
     let delta = expires_ts - now;
-    Ok(Some(std::time::Instant::now() + std::time::Duration::from_secs(delta)))
+    Ok(Some(
+        std::time::Instant::now() + std::time::Duration::from_secs(delta),
+    ))
 }
 
 fn build_kill_switch(config: &KillSwitchConfig) -> Result<Option<KillSwitchState>> {
     if !config.enabled() {
         return Ok(None);
     }
-    let pubkey_hex = config.pubkey_hex.as_ref().ok_or_else(|| anyhow::anyhow!("kill switch enabled without pubkey"))?;
+    let pubkey_hex = config
+        .pubkey_hex
+        .as_ref()
+        .ok_or_else(|| anyhow::anyhow!("kill switch enabled without pubkey"))?;
     let pubkey = hex::decode(pubkey_hex).context("decode kill switch pubkey")?;
     if pubkey.len() != 32 {
         anyhow::bail!("kill switch pubkey must be 32 bytes");
@@ -1579,7 +1711,10 @@ fn build_kill_switch(config: &KillSwitchConfig) -> Result<Option<KillSwitchState
     }))
 }
 
-fn build_agentmail_state(config: &AgentMailConfig, state_dir: &std::path::Path) -> Result<Option<AgentMailState>> {
+fn build_agentmail_state(
+    config: &AgentMailConfig,
+    state_dir: &std::path::Path,
+) -> Result<Option<AgentMailState>> {
     if !config.enabled() {
         return Ok(None);
     }
@@ -1595,7 +1730,11 @@ fn build_agentmail_state(config: &AgentMailConfig, state_dir: &std::path::Path) 
         fs::create_dir_all(parent)
             .with_context(|| format!("create agentmail seen dir {}", parent.display()))?;
     }
-    let seen = AgentMailSeen::load(&seen_path, config.retention_sec(), config.max_seen_entries())?;
+    let seen = AgentMailSeen::load(
+        &seen_path,
+        config.retention_sec(),
+        config.max_seen_entries(),
+    )?;
 
     let sender_pubkeys = parse_sender_pubkeys(config.sender_pubkeys())?;
     let allow_senders: HashSet<String> = config.allow_senders().iter().cloned().collect();
@@ -1649,7 +1788,10 @@ fn parse_sender_pubkeys(entries: &[SenderKeyConfig]) -> Result<HashMap<String, V
     Ok(map)
 }
 
-fn build_receipt_state(config: &Config, state_dir: &std::path::Path) -> Result<Option<ReceiptState>> {
+fn build_receipt_state(
+    config: &Config,
+    state_dir: &std::path::Path,
+) -> Result<Option<ReceiptState>> {
     if !config.receipts.enabled() {
         return Ok(None);
     }
@@ -1685,9 +1827,18 @@ fn build_policy_hash(
     agentmail: &crate::config::AgentMailConfig,
 ) -> Result<[u8; 32]> {
     let mut entries = Vec::new();
-    entries.push((CborValue::Unsigned(0), CborValue::Bool(pubsub.require_economic_proof())));
-    entries.push((CborValue::Unsigned(1), CborValue::Bool(pubsub.verify_signatures())));
-    entries.push((CborValue::Unsigned(2), CborValue::Bool(pubsub.economic_proof_fail_open())));
+    entries.push((
+        CborValue::Unsigned(0),
+        CborValue::Bool(pubsub.require_economic_proof()),
+    ));
+    entries.push((
+        CborValue::Unsigned(1),
+        CborValue::Bool(pubsub.verify_signatures()),
+    ));
+    entries.push((
+        CborValue::Unsigned(2),
+        CborValue::Bool(pubsub.economic_proof_fail_open()),
+    ));
     entries.push((
         CborValue::Unsigned(3),
         CborValue::Unsigned(pubsub.economic_proof_validator_timeout_ms()),
@@ -1696,17 +1847,41 @@ fn build_policy_hash(
         CborValue::Unsigned(4),
         CborValue::Bool(pubsub.economic_proof_validator_cmd().is_some()),
     ));
-    entries.push((CborValue::Unsigned(5), CborValue::Bool(kill_switch.enabled())));
+    entries.push((
+        CborValue::Unsigned(5),
+        CborValue::Bool(kill_switch.enabled()),
+    ));
     entries.push((CborValue::Unsigned(6), CborValue::Text(kill_switch.topic())));
-    entries.push((CborValue::Unsigned(7), CborValue::Unsigned(kill_switch.payload_type() as u64)));
-    entries.push((CborValue::Unsigned(8), CborValue::Bool(kill_switch.allow_release())));
-    entries.push((CborValue::Unsigned(9), skew_to_cbor(kill_switch.max_clock_skew_sec())));
-    entries.push((CborValue::Unsigned(10), CborValue::Unsigned(kill_switch.replay_window() as u64)));
-    entries.push((CborValue::Unsigned(11), skew_to_cbor(handshake.max_clock_skew_sec())));
-    entries.push((CborValue::Unsigned(12), CborValue::Bool(handshake.require_peer_id_match())));
+    entries.push((
+        CborValue::Unsigned(7),
+        CborValue::Unsigned(kill_switch.payload_type() as u64),
+    ));
+    entries.push((
+        CborValue::Unsigned(8),
+        CborValue::Bool(kill_switch.allow_release()),
+    ));
+    entries.push((
+        CborValue::Unsigned(9),
+        skew_to_cbor(kill_switch.max_clock_skew_sec()),
+    ));
+    entries.push((
+        CborValue::Unsigned(10),
+        CborValue::Unsigned(kill_switch.replay_window() as u64),
+    ));
+    entries.push((
+        CborValue::Unsigned(11),
+        skew_to_cbor(handshake.max_clock_skew_sec()),
+    ));
+    entries.push((
+        CborValue::Unsigned(12),
+        CborValue::Bool(handshake.require_peer_id_match()),
+    ));
     entries.push((CborValue::Unsigned(13), CborValue::Bool(tx.enabled())));
     if let Some(payload_type) = tx.pubsub_payload_type() {
-        entries.push((CborValue::Unsigned(14), CborValue::Unsigned(payload_type as u64)));
+        entries.push((
+            CborValue::Unsigned(14),
+            CborValue::Unsigned(payload_type as u64),
+        ));
     }
     entries.push((
         CborValue::Unsigned(15),
@@ -1720,7 +1895,10 @@ fn build_policy_hash(
         CborValue::Unsigned(17),
         CborValue::Unsigned(tx.escrow.arbitrators.len() as u64),
     ));
-    entries.push((CborValue::Unsigned(18), CborValue::Bool(rate_limits.enabled())));
+    entries.push((
+        CborValue::Unsigned(18),
+        CborValue::Bool(rate_limits.enabled()),
+    ));
     if let Some(window) = rate_limits.window_sec() {
         entries.push((CborValue::Unsigned(19), CborValue::Unsigned(window)));
     }
@@ -1750,7 +1928,10 @@ fn build_policy_hash(
         CborValue::Unsigned(26),
         skew_to_cbor(tx.identity.max_clock_skew_sec()),
     ));
-    entries.push((CborValue::Unsigned(27), CborValue::Bool(tx.budget.enabled())));
+    entries.push((
+        CborValue::Unsigned(27),
+        CborValue::Bool(tx.budget.enabled()),
+    ));
     if let Some(window) = tx.budget.window_sec() {
         entries.push((CborValue::Unsigned(28), CborValue::Unsigned(window)));
     }
@@ -1926,7 +2107,11 @@ fn parse_kill_switch_payload(value: &CborValue) -> Result<KillSwitchPayload> {
     })
 }
 
-fn verify_kill_switch_payload(payload: &KillSwitchPayload, pubkey: &[u8], max_skew: i64) -> Result<()> {
+fn verify_kill_switch_payload(
+    payload: &KillSwitchPayload,
+    pubkey: &[u8],
+    max_skew: i64,
+) -> Result<()> {
     if payload.signature.len() != 64 {
         anyhow::bail!("kill switch signature length invalid");
     }
@@ -1939,10 +2124,19 @@ fn verify_kill_switch_payload(payload: &KillSwitchPayload, pubkey: &[u8], max_sk
         anyhow::bail!("kill switch timestamp outside window");
     }
     let payload_map = CborValue::Map(vec![
-        (CborValue::Unsigned(0), CborValue::Unsigned(payload.action as u64)),
-        (CborValue::Unsigned(1), CborValue::Text(payload.reason.clone())),
+        (
+            CborValue::Unsigned(0),
+            CborValue::Unsigned(payload.action as u64),
+        ),
+        (
+            CborValue::Unsigned(1),
+            CborValue::Text(payload.reason.clone()),
+        ),
         (CborValue::Unsigned(2), CborValue::Unsigned(payload.ts)),
-        (CborValue::Unsigned(3), CborValue::Bytes(payload.nonce.clone())),
+        (
+            CborValue::Unsigned(3),
+            CborValue::Bytes(payload.nonce.clone()),
+        ),
     ]);
     let payload_cbor = anetsdk::encode_canonical(&payload_map)?;
     let hash = sha256(&payload_cbor);
@@ -2072,7 +2266,8 @@ impl AgentMailSeen {
         let mut pruned = false;
         while let Some(id) = self.order.front() {
             let ts = self.entries.get(id).copied().unwrap_or(0);
-            if now.saturating_sub(ts) > self.retention_sec || self.entries.len() > self.max_entries {
+            if now.saturating_sub(ts) > self.retention_sec || self.entries.len() > self.max_entries
+            {
                 let id = self.order.pop_front().expect("front exists");
                 self.entries.remove(&id);
                 pruned = true;
@@ -2113,17 +2308,24 @@ mod tests {
     use base64::engine::general_purpose::STANDARD as BASE64;
     use base64::Engine;
     use std::path::PathBuf;
-    use tokio::time::{Instant, Duration};
+    use tokio::time::{Duration, Instant};
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
     async fn handshake_completes_between_two_nodes() -> Result<()> {
         let keys_a = generate_keypair();
         let keys_b = generate_keypair();
         let chain_id = BASE64.encode(keys_a.verifying_key.to_bytes());
-        let agent_did_a = format!("did:anet:agent:{}", BASE64.encode(keys_a.verifying_key.to_bytes()));
-        let agent_did_b = format!("did:anet:agent:{}", BASE64.encode(keys_b.verifying_key.to_bytes()));
+        let agent_did_a = format!(
+            "did:anet:agent:{}",
+            BASE64.encode(keys_a.verifying_key.to_bytes())
+        );
+        let agent_did_b = format!(
+            "did:anet:agent:{}",
+            BASE64.encode(keys_b.verifying_key.to_bytes())
+        );
 
-        let temp_base = std::env::temp_dir().join(format!("agentmesh-test-{}", rand::random::<u64>()));
+        let temp_base =
+            std::env::temp_dir().join(format!("agentmesh-test-{}", rand::random::<u64>()));
         let config_a = Config {
             chain_id: chain_id.clone(),
             agent_did: agent_did_a,
@@ -2133,6 +2335,7 @@ mod tests {
             listen_addrs: vec!["/ip4/127.0.0.1/udp/0/quic-v1".to_string()],
             bootstrap: vec![],
             protocols: vec![],
+            transports: vec![],
             roles: vec![],
             features: FeaturesConfig::default(),
             pubsub: PubSubConfig::default(),
@@ -2153,6 +2356,7 @@ mod tests {
             listen_addrs: vec!["/ip4/127.0.0.1/udp/0/quic-v1".to_string()],
             bootstrap: vec![],
             protocols: vec![],
+            transports: vec![],
             roles: vec![],
             features: FeaturesConfig::default(),
             pubsub: PubSubConfig::default(),
@@ -2172,7 +2376,9 @@ mod tests {
         let addr_b = wait_for_listen(&mut node_b).await?;
 
         let b_peer = *node_b.swarm.local_peer_id();
-        let dial_addr = addr_b.with_p2p(b_peer).map_err(|_| anyhow::anyhow!("invalid dial addr"))?;
+        let dial_addr = addr_b
+            .with_p2p(b_peer)
+            .map_err(|_| anyhow::anyhow!("invalid dial addr"))?;
         node_a.swarm.dial(dial_addr)?;
 
         let a_peer = *node_a.swarm.local_peer_id();
@@ -2187,7 +2393,8 @@ mod tests {
                 }
                 _ = tokio::time::sleep(Duration::from_millis(10)) => {}
             }
-            if node_a.peer_hellos.contains_key(&b_peer) && node_b.peer_hellos.contains_key(&a_peer) {
+            if node_a.peer_hellos.contains_key(&b_peer) && node_b.peer_hellos.contains_key(&a_peer)
+            {
                 return Ok(());
             }
         }

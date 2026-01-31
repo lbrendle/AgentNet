@@ -157,7 +157,10 @@ pub(crate) fn expect_map(value: &CborValue) -> Result<Vec<(CborValue, CborValue)
     }
 }
 
-pub(crate) fn get_required(entries: &[(CborValue, CborValue)], key: u64) -> Result<&CborValue, Error> {
+pub(crate) fn get_required(
+    entries: &[(CborValue, CborValue)],
+    key: u64,
+) -> Result<&CborValue, Error> {
     for (k, v) in entries {
         if let CborValue::Unsigned(n) = k {
             if *n == key {

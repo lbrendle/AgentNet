@@ -1,6 +1,9 @@
 use crate::{CborValue, Error};
 
-pub(crate) fn split_signed_map(value: &CborValue, sig_key: u64) -> Result<(Vec<(CborValue, CborValue)>, Vec<u8>), Error> {
+pub(crate) fn split_signed_map(
+    value: &CborValue,
+    sig_key: u64,
+) -> Result<(Vec<(CborValue, CborValue)>, Vec<u8>), Error> {
     let entries = match value {
         CborValue::Map(entries) => entries.clone(),
         _ => return Err(Error::Cbor("expected map")),
@@ -29,7 +32,11 @@ pub(crate) fn split_signed_map(value: &CborValue, sig_key: u64) -> Result<(Vec<(
     Ok((payload_entries, sig))
 }
 
-pub(crate) fn with_signature(payload: &CborValue, sig_key: u64, signature: Vec<u8>) -> Result<CborValue, Error> {
+pub(crate) fn with_signature(
+    payload: &CborValue,
+    sig_key: u64,
+    signature: Vec<u8>,
+) -> Result<CborValue, Error> {
     let mut entries = match payload {
         CborValue::Map(entries) => entries.clone(),
         _ => return Err(Error::Cbor("expected map")),

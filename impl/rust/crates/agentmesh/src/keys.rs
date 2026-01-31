@@ -22,7 +22,10 @@ pub fn load_keypair(path: &Path) -> Result<KeyMaterial> {
     sk_bytes.copy_from_slice(&decoded);
     let signing_key = SigningKey::from_bytes(&sk_bytes);
     let verifying_key = signing_key.verifying_key();
-    Ok(KeyMaterial { signing_key, verifying_key })
+    Ok(KeyMaterial {
+        signing_key,
+        verifying_key,
+    })
 }
 
 pub fn generate_keypair() -> KeyMaterial {
@@ -31,13 +34,17 @@ pub fn generate_keypair() -> KeyMaterial {
     rng.fill_bytes(&mut secret);
     let signing_key = SigningKey::from_bytes(&secret);
     let verifying_key = signing_key.verifying_key();
-    KeyMaterial { signing_key, verifying_key }
+    KeyMaterial {
+        signing_key,
+        verifying_key,
+    }
 }
 
 pub fn write_secret_key(path: &Path, signing_key: &SigningKey) -> Result<()> {
     let secret = signing_key.to_bytes();
     let encoded = BASE64.encode(secret);
-    fs::write(path, format!("{}\n", encoded)).with_context(|| format!("write key {}", path.display()))?;
+    fs::write(path, format!("{}\n", encoded))
+        .with_context(|| format!("write key {}", path.display()))?;
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;

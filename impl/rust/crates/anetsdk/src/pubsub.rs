@@ -1,11 +1,11 @@
+use crate::schema::{
+    expect_bytes, expect_bytes_len, expect_map, expect_text, expect_u16, expect_u64, expect_u8,
+    get_optional, get_required,
+};
 use crate::signed::{split_signed_map, with_signature};
 use crate::{
     decode_canonical, encode_canonical, sha256, sign_ed25519_hash, verify_ed25519_hash, CborValue,
     Error,
-};
-use crate::schema::{
-    expect_bytes, expect_bytes_len, expect_map, expect_text, expect_u16, expect_u64, expect_u8,
-    get_optional, get_required,
 };
 
 #[derive(Debug, Clone)]
@@ -62,7 +62,10 @@ pub fn decode_pubsub_envelope(data: &[u8]) -> Result<PubSubEnvelope, Error> {
     parse_pubsub_envelope(&value)
 }
 
-pub fn build_pubsub_envelope(payload: &PubSubEnvelopePayload, secret_key: &[u8]) -> Result<Vec<u8>, Error> {
+pub fn build_pubsub_envelope(
+    payload: &PubSubEnvelopePayload,
+    secret_key: &[u8],
+) -> Result<Vec<u8>, Error> {
     let payload_value = payload.to_cbor();
     let payload_cbor = encode_canonical(&payload_value)?;
     let hash = sha256(&payload_cbor);
@@ -71,7 +74,10 @@ pub fn build_pubsub_envelope(payload: &PubSubEnvelopePayload, secret_key: &[u8])
     encode_canonical(&full)
 }
 
-pub fn verify_pubsub_envelope(data: &[u8], public_key: &[u8]) -> Result<PubSubEnvelopePayload, Error> {
+pub fn verify_pubsub_envelope(
+    data: &[u8],
+    public_key: &[u8],
+) -> Result<PubSubEnvelopePayload, Error> {
     let value = decode_canonical(data)?;
     let (payload_entries, signature) = split_signed_map(&value, 8)?;
     let payload_value = CborValue::Map(payload_entries);
@@ -99,12 +105,18 @@ impl EconomicProof {
 impl PubSubEnvelopePayload {
     pub fn to_cbor(&self) -> CborValue {
         let mut entries = Vec::new();
-        entries.push((CborValue::Unsigned(0), CborValue::Unsigned(self.version as u64)));
+        entries.push((
+            CborValue::Unsigned(0),
+            CborValue::Unsigned(self.version as u64),
+        ));
         entries.push((CborValue::Unsigned(1), CborValue::Text(self.topic.clone())));
         entries.push((CborValue::Unsigned(2), CborValue::Text(self.sender.clone())));
         entries.push((CborValue::Unsigned(3), CborValue::Unsigned(self.ts)));
         entries.push((CborValue::Unsigned(4), CborValue::Unsigned(self.seq)));
-        entries.push((CborValue::Unsigned(5), CborValue::Unsigned(self.payload_type as u64)));
+        entries.push((
+            CborValue::Unsigned(5),
+            CborValue::Unsigned(self.payload_type as u64),
+        ));
         entries.push((CborValue::Unsigned(6), self.payload.clone()));
         if let Some(proof) = &self.economic_proof {
             entries.push((CborValue::Unsigned(7), proof.to_cbor()));

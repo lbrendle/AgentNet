@@ -281,7 +281,11 @@ mod tests {
                     assert_eq!(val, case.canonical, "{} canonical mismatch", case.id);
                 }
                 Err(_) => {
-                    assert!(case.canonical.is_empty(), "{} should not canonicalize", case.id);
+                    assert!(
+                        case.canonical.is_empty(),
+                        "{} should not canonicalize",
+                        case.id
+                    );
                 }
             }
             let valid = validate_markdown_profile(&case.input).is_ok();

@@ -93,6 +93,7 @@ pub struct SkillStateSnapshot {
 }
 
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)]
 pub struct SkillRecordSnapshot {
     pub skill_id: String,
     pub author: String,
@@ -116,6 +117,7 @@ pub struct WorkStateSnapshot {
 }
 
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)]
 pub struct WorkOfferRecordSnapshot {
     pub offer_id: String,
     pub issuer: String,
@@ -133,6 +135,7 @@ pub struct WorkOfferRecordSnapshot {
 }
 
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)]
 pub struct WorkAgreementRecordSnapshot {
     pub agreement_id: String,
     pub offer_id: String,

@@ -1,11 +1,11 @@
+use crate::schema::{
+    expect_bytes_len, expect_map, expect_text, expect_text_array, expect_u16, expect_u64,
+    expect_u8, get_optional, get_required,
+};
 use crate::signed::{split_signed_map, with_signature};
 use crate::{
     decode_canonical, encode_canonical, sha256, sign_ed25519_hash, verify_ed25519_hash, CborValue,
     Error,
-};
-use crate::schema::{
-    expect_bytes_len, expect_map, expect_text, expect_text_array, expect_u16, expect_u64, expect_u8,
-    get_optional, get_required,
 };
 
 #[derive(Debug, Clone)]
@@ -139,8 +139,24 @@ pub fn parse_community_record(value: &CborValue) -> Result<CommunityRecord, Erro
 impl Contact {
     pub fn to_cbor(&self) -> CborValue {
         CborValue::Map(vec![
-            (CborValue::Unsigned(0), CborValue::Array(self.node_ids.iter().map(|s| CborValue::Text(s.clone())).collect())),
-            (CborValue::Unsigned(1), CborValue::Array(self.addrs.iter().map(|s| CborValue::Text(s.clone())).collect())),
+            (
+                CborValue::Unsigned(0),
+                CborValue::Array(
+                    self.node_ids
+                        .iter()
+                        .map(|s| CborValue::Text(s.clone()))
+                        .collect(),
+                ),
+            ),
+            (
+                CborValue::Unsigned(1),
+                CborValue::Array(
+                    self.addrs
+                        .iter()
+                        .map(|s| CborValue::Text(s.clone()))
+                        .collect(),
+                ),
+            ),
         ])
     }
 }
@@ -148,10 +164,29 @@ impl Contact {
 impl AgentRecordPayload {
     pub fn to_cbor(&self) -> CborValue {
         CborValue::Map(vec![
-            (CborValue::Unsigned(0), CborValue::Text(self.agent_id.clone())),
-            (CborValue::Unsigned(1), CborValue::Array(self.agent_pubkeys.iter().map(|k| CborValue::Bytes(k.clone())).collect())),
+            (
+                CborValue::Unsigned(0),
+                CborValue::Text(self.agent_id.clone()),
+            ),
+            (
+                CborValue::Unsigned(1),
+                CborValue::Array(
+                    self.agent_pubkeys
+                        .iter()
+                        .map(|k| CborValue::Bytes(k.clone()))
+                        .collect(),
+                ),
+            ),
             (CborValue::Unsigned(2), self.contact.to_cbor()),
-            (CborValue::Unsigned(3), CborValue::Array(self.capabilities.iter().map(|s| CborValue::Text(s.clone())).collect())),
+            (
+                CborValue::Unsigned(3),
+                CborValue::Array(
+                    self.capabilities
+                        .iter()
+                        .map(|s| CborValue::Text(s.clone()))
+                        .collect(),
+                ),
+            ),
             (CborValue::Unsigned(4), CborValue::Unsigned(self.expires)),
         ])
     }
@@ -160,11 +195,33 @@ impl AgentRecordPayload {
 impl ServiceRecordPayload {
     pub fn to_cbor(&self) -> CborValue {
         let mut entries = Vec::new();
-        entries.push((CborValue::Unsigned(0), CborValue::Text(self.provider_id.clone())));
-        entries.push((CborValue::Unsigned(1), CborValue::Unsigned(self.service_type as u64)));
-        entries.push((CborValue::Unsigned(2), CborValue::Array(self.addrs.iter().map(|s| CborValue::Text(s.clone())).collect())));
+        entries.push((
+            CborValue::Unsigned(0),
+            CborValue::Text(self.provider_id.clone()),
+        ));
+        entries.push((
+            CborValue::Unsigned(1),
+            CborValue::Unsigned(self.service_type as u64),
+        ));
+        entries.push((
+            CborValue::Unsigned(2),
+            CborValue::Array(
+                self.addrs
+                    .iter()
+                    .map(|s| CborValue::Text(s.clone()))
+                    .collect(),
+            ),
+        ));
         if let Some(required) = &self.required_credentials {
-            entries.push((CborValue::Unsigned(3), CborValue::Array(required.iter().map(|s| CborValue::Text(s.clone())).collect())));
+            entries.push((
+                CborValue::Unsigned(3),
+                CborValue::Array(
+                    required
+                        .iter()
+                        .map(|s| CborValue::Text(s.clone()))
+                        .collect(),
+                ),
+            ));
         }
         if let Some(pricing) = &self.pricing {
             entries.push((CborValue::Unsigned(4), pricing.clone()));
@@ -177,11 +234,28 @@ impl ServiceRecordPayload {
 impl CommunityRecordPayload {
     pub fn to_cbor(&self) -> CborValue {
         let mut entries = Vec::new();
-        entries.push((CborValue::Unsigned(0), CborValue::Text(self.community_id.clone())));
-        entries.push((CborValue::Unsigned(1), CborValue::Text(self.controller.clone())));
-        entries.push((CborValue::Unsigned(2), CborValue::Unsigned(self.join_policy as u64)));
+        entries.push((
+            CborValue::Unsigned(0),
+            CborValue::Text(self.community_id.clone()),
+        ));
+        entries.push((
+            CborValue::Unsigned(1),
+            CborValue::Text(self.controller.clone()),
+        ));
+        entries.push((
+            CborValue::Unsigned(2),
+            CborValue::Unsigned(self.join_policy as u64),
+        ));
         if let Some(required) = &self.required_credentials {
-            entries.push((CborValue::Unsigned(3), CborValue::Array(required.iter().map(|s| CborValue::Text(s.clone())).collect())));
+            entries.push((
+                CborValue::Unsigned(3),
+                CborValue::Array(
+                    required
+                        .iter()
+                        .map(|s| CborValue::Text(s.clone()))
+                        .collect(),
+                ),
+            ));
         }
         entries.push((CborValue::Unsigned(4), self.economics.clone()));
         entries.push((CborValue::Unsigned(5), self.governance.clone()));
@@ -190,15 +264,24 @@ impl CommunityRecordPayload {
     }
 }
 
-pub fn build_agent_record(payload: &AgentRecordPayload, secret_key: &[u8]) -> Result<Vec<u8>, Error> {
+pub fn build_agent_record(
+    payload: &AgentRecordPayload,
+    secret_key: &[u8],
+) -> Result<Vec<u8>, Error> {
     build_signed_record(payload.to_cbor(), 5, secret_key)
 }
 
-pub fn build_service_record(payload: &ServiceRecordPayload, secret_key: &[u8]) -> Result<Vec<u8>, Error> {
+pub fn build_service_record(
+    payload: &ServiceRecordPayload,
+    secret_key: &[u8],
+) -> Result<Vec<u8>, Error> {
     build_signed_record(payload.to_cbor(), 6, secret_key)
 }
 
-pub fn build_community_record(payload: &CommunityRecordPayload, secret_key: &[u8]) -> Result<Vec<u8>, Error> {
+pub fn build_community_record(
+    payload: &CommunityRecordPayload,
+    secret_key: &[u8],
+) -> Result<Vec<u8>, Error> {
     build_signed_record(payload.to_cbor(), 7, secret_key)
 }
 
@@ -206,15 +289,25 @@ pub fn verify_agent_record(data: &[u8], public_key: &[u8]) -> Result<AgentRecord
     verify_signed_record(data, 5, public_key, parse_agent_record_payload)
 }
 
-pub fn verify_service_record(data: &[u8], public_key: &[u8]) -> Result<ServiceRecordPayload, Error> {
+pub fn verify_service_record(
+    data: &[u8],
+    public_key: &[u8],
+) -> Result<ServiceRecordPayload, Error> {
     verify_signed_record(data, 6, public_key, parse_service_record_payload)
 }
 
-pub fn verify_community_record(data: &[u8], public_key: &[u8]) -> Result<CommunityRecordPayload, Error> {
+pub fn verify_community_record(
+    data: &[u8],
+    public_key: &[u8],
+) -> Result<CommunityRecordPayload, Error> {
     verify_signed_record(data, 7, public_key, parse_community_record_payload)
 }
 
-fn build_signed_record(payload: CborValue, sig_key: u64, secret_key: &[u8]) -> Result<Vec<u8>, Error> {
+fn build_signed_record(
+    payload: CborValue,
+    sig_key: u64,
+    secret_key: &[u8],
+) -> Result<Vec<u8>, Error> {
     let payload_cbor = encode_canonical(&payload)?;
     let hash = sha256(&payload_cbor);
     let sig = sign_ed25519_hash(secret_key, &hash)?;

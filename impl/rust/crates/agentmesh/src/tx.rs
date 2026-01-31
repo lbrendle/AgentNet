@@ -2,15 +2,15 @@ use crate::config::{
     BudgetConfig, BudgetCurrencyCap, EscrowConfig, IdentityConfig, SenderKeyConfig,
     SkillRegistryConfig, TxConfig, WorkRegistryConfig,
 };
-use anyhow::{Context, Result};
 use anetsdk::{
-    decode_tx_envelope, encode_canonical, parse_escrow_dispute_payload, parse_escrow_lock_payload,
-    parse_escrow_release_payload, parse_escrow_resolve_payload, parse_identity_register_payload,
-    parse_identity_rotate_payload, parse_credential_revoke_payload, parse_postage_payload,
-    parse_skill_publish_payload, parse_skill_revoke_payload, parse_skill_update_payload,
-    parse_transfer_payload, sha256, verify_skill_manifest, verify_tx_envelope, verify_work_agreement,
-    verify_work_offer, CborValue, TxEnvelopePayload,
+    decode_tx_envelope, encode_canonical, parse_credential_revoke_payload,
+    parse_escrow_dispute_payload, parse_escrow_lock_payload, parse_escrow_release_payload,
+    parse_escrow_resolve_payload, parse_identity_register_payload, parse_identity_rotate_payload,
+    parse_postage_payload, parse_skill_publish_payload, parse_skill_revoke_payload,
+    parse_skill_update_payload, parse_transfer_payload, sha256, verify_skill_manifest,
+    verify_tx_envelope, verify_work_agreement, verify_work_offer, CborValue, TxEnvelopePayload,
 };
+use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::fs::{self, OpenOptions};
@@ -372,7 +372,13 @@ impl TxEngine {
             TX_WORK_AGREEMENT_PUBLISH => {
                 let publish = anetsdk::parse_work_agreement_publish_payload(&payload.payload)
                     .context("parse work agreement publish payload")?;
-                work_registry.publish_agreement(&publish, &sender, &sender_pubkey, now, economics)?
+                work_registry.publish_agreement(
+                    &publish,
+                    &sender,
+                    &sender_pubkey,
+                    now,
+                    economics,
+                )?
             }
             TX_WORK_AGREEMENT_UPDATE => {
                 let update = anetsdk::parse_work_agreement_update_payload(&payload.payload)
@@ -425,11 +431,17 @@ fn is_escrow_tx(tx_type: u64) -> bool {
 }
 
 fn is_identity_tx(tx_type: u64) -> bool {
-    matches!(tx_type, TX_IDENTITY_REGISTER | TX_IDENTITY_ROTATE | TX_CRED_REVOKE)
+    matches!(
+        tx_type,
+        TX_IDENTITY_REGISTER | TX_IDENTITY_ROTATE | TX_CRED_REVOKE
+    )
 }
 
 fn is_skill_tx(tx_type: u64) -> bool {
-    matches!(tx_type, TX_SKILL_PUBLISH | TX_SKILL_UPDATE | TX_SKILL_REVOKE)
+    matches!(
+        tx_type,
+        TX_SKILL_PUBLISH | TX_SKILL_UPDATE | TX_SKILL_REVOKE
+    )
 }
 
 fn is_work_tx(tx_type: u64) -> bool {
@@ -674,7 +686,11 @@ impl IdentityRegistry {
             anyhow::bail!("credential revoke disabled");
         }
         self.ensure_clock(payload.ts, now)?;
-        let key = format!("{}:{}", payload.issuer, hex::encode(&payload.credential_id_hash));
+        let key = format!(
+            "{}:{}",
+            payload.issuer,
+            hex::encode(&payload.credential_id_hash)
+        );
         self.revocations.insert(key);
         self.persist()?;
         Ok(())
@@ -947,7 +963,11 @@ impl SkillRegistry {
     }
 
     fn ensure_ts_alignment(&self, ts: u64, manifest_ts: u64) -> Result<()> {
-        let diff = if ts > manifest_ts { ts - manifest_ts } else { manifest_ts - ts };
+        let diff = if ts > manifest_ts {
+            ts - manifest_ts
+        } else {
+            manifest_ts - ts
+        };
         if diff > self.config.max_clock_skew_sec() as u64 {
             anyhow::bail!("manifest timestamp mismatch");
         }
@@ -1074,16 +1094,25 @@ impl WorkRegistry {
                 receipt: None,
             });
         }
-        if self.agreements.contains_key(&agreement_payload.agreement_id) {
+        if self
+            .agreements
+            .contains_key(&agreement_payload.agreement_id)
+        {
             return Ok(TxDecision {
                 accept: false,
                 reason: Some("agreement already exists".to_string()),
                 receipt: None,
             });
         }
-        let offer = self.offers.get(&agreement_payload.offer_id).ok_or_else(|| {
-            anyhow::anyhow!("offer not found for agreement {}", agreement_payload.offer_id)
-        })?;
+        let offer = self
+            .offers
+            .get(&agreement_payload.offer_id)
+            .ok_or_else(|| {
+                anyhow::anyhow!(
+                    "offer not found for agreement {}",
+                    agreement_payload.offer_id
+                )
+            })?;
         if offer.issuer != agreement_payload.issuer {
             return Ok(TxDecision {
                 accept: false,
@@ -1116,8 +1145,7 @@ impl WorkRegistry {
             closed_at: None,
             close_reason: None,
         };
-        self.agreements
-            .insert(record.agreement_id.clone(), record);
+        self.agreements.insert(record.agreement_id.clone(), record);
         self.persist()?;
         Ok(TxDecision {
             accept: true,
@@ -1303,7 +1331,11 @@ impl WorkRegistry {
     }
 
     fn ensure_ts_alignment(&self, ts: u64, inner_ts: u64) -> Result<()> {
-        let diff = if ts > inner_ts { ts - inner_ts } else { inner_ts - ts };
+        let diff = if ts > inner_ts {
+            ts - inner_ts
+        } else {
+            inner_ts - ts
+        };
         if diff > self.config.max_clock_skew_sec() as u64 {
             anyhow::bail!("work timestamp mismatch");
         }
@@ -1355,14 +1387,16 @@ impl BudgetLedger {
     fn check_and_record(&mut self, payload: &TxEnvelopePayload, now: u64) -> Result<(), String> {
         let (amount, currency, spender) = match payload.tx_type {
             TX_ESCROW_LOCK => {
-                let lock = parse_escrow_lock_payload(&payload.payload).map_err(|e| e.to_string())?;
+                let lock =
+                    parse_escrow_lock_payload(&payload.payload).map_err(|e| e.to_string())?;
                 if payload.sender != lock.payer {
                     return Err("sender must be payer".to_string());
                 }
                 (lock.amount, lock.currency, lock.payer)
             }
             TX_TRANSFER => {
-                let transfer = parse_transfer_payload(&payload.payload).map_err(|e| e.to_string())?;
+                let transfer =
+                    parse_transfer_payload(&payload.payload).map_err(|e| e.to_string())?;
                 if payload.sender != transfer.from {
                     return Err("sender must be transfer origin".to_string());
                 }
@@ -1465,25 +1499,55 @@ impl EscrowLedger {
         };
         match payload.tx_type {
             TX_ESCROW_LOCK => {
-                let lock = parse_escrow_lock_payload(&payload.payload)
-                    .context("parse escrow lock")?;
+                let lock =
+                    parse_escrow_lock_payload(&payload.payload).context("parse escrow lock")?;
                 if self.records.contains_key(&lock.escrow_id) {
-                    return Ok(self.reject(&tx_hash_hex, payload.tx_type, &lock.escrow_id, "escrow already exists")?);
+                    return Ok(self.reject(
+                        &tx_hash_hex,
+                        payload.tx_type,
+                        &lock.escrow_id,
+                        "escrow already exists",
+                    )?);
                 }
                 if lock.amount == 0 {
-                    return Ok(self.reject(&tx_hash_hex, payload.tx_type, &lock.escrow_id, "amount must be > 0")?);
+                    return Ok(self.reject(
+                        &tx_hash_hex,
+                        payload.tx_type,
+                        &lock.escrow_id,
+                        "amount must be > 0",
+                    )?);
                 }
                 if lock.currency.is_empty() {
-                    return Ok(self.reject(&tx_hash_hex, payload.tx_type, &lock.escrow_id, "currency required")?);
+                    return Ok(self.reject(
+                        &tx_hash_hex,
+                        payload.tx_type,
+                        &lock.escrow_id,
+                        "currency required",
+                    )?);
                 }
                 if lock.expiry <= now {
-                    return Ok(self.reject(&tx_hash_hex, payload.tx_type, &lock.escrow_id, "expiry must be in the future")?);
+                    return Ok(self.reject(
+                        &tx_hash_hex,
+                        payload.tx_type,
+                        &lock.escrow_id,
+                        "expiry must be in the future",
+                    )?);
                 }
                 if lock.dispute_window_sec == 0 {
-                    return Ok(self.reject(&tx_hash_hex, payload.tx_type, &lock.escrow_id, "dispute window must be > 0")?);
+                    return Ok(self.reject(
+                        &tx_hash_hex,
+                        payload.tx_type,
+                        &lock.escrow_id,
+                        "dispute window must be > 0",
+                    )?);
                 }
                 if payload.sender != lock.payer {
-                    return Ok(self.reject(&tx_hash_hex, payload.tx_type, &lock.escrow_id, "sender must be payer")?);
+                    return Ok(self.reject(
+                        &tx_hash_hex,
+                        payload.tx_type,
+                        &lock.escrow_id,
+                        "sender must be payer",
+                    )?);
                 }
                 let release_condition_bytes = encode_canonical(&lock.release_condition)?;
                 let record = EscrowRecord {
@@ -1520,17 +1584,37 @@ impl EscrowLedger {
                     let record = match record {
                         Some(record) => record,
                         None => {
-                            return Ok(self.reject(&tx_hash_hex, payload.tx_type, &release.escrow_id, "escrow not found")?);
+                            return Ok(self.reject(
+                                &tx_hash_hex,
+                                payload.tx_type,
+                                &release.escrow_id,
+                                "escrow not found",
+                            )?);
                         }
                     };
                     if !matches!(record.status, EscrowStatus::Locked) {
-                        return Ok(self.reject(&tx_hash_hex, payload.tx_type, &release.escrow_id, "escrow not locked")?);
+                        return Ok(self.reject(
+                            &tx_hash_hex,
+                            payload.tx_type,
+                            &release.escrow_id,
+                            "escrow not locked",
+                        )?);
                     }
                     if payload.sender != record.payer {
-                        return Ok(self.reject(&tx_hash_hex, payload.tx_type, &release.escrow_id, "sender must be payer")?);
+                        return Ok(self.reject(
+                            &tx_hash_hex,
+                            payload.tx_type,
+                            &release.escrow_id,
+                            "sender must be payer",
+                        )?);
                     }
                     if now >= record.expiry {
-                        return Ok(self.reject(&tx_hash_hex, payload.tx_type, &release.escrow_id, "escrow expired")?);
+                        return Ok(self.reject(
+                            &tx_hash_hex,
+                            payload.tx_type,
+                            &release.escrow_id,
+                            "escrow expired",
+                        )?);
                     }
                     record.status = EscrowStatus::Released;
                     record.resolved_at = Some(now);
@@ -1555,21 +1639,47 @@ impl EscrowLedger {
                     let record = match record {
                         Some(record) => record,
                         None => {
-                            return Ok(self.reject(&tx_hash_hex, payload.tx_type, &dispute.escrow_id, "escrow not found")?);
+                            return Ok(self.reject(
+                                &tx_hash_hex,
+                                payload.tx_type,
+                                &dispute.escrow_id,
+                                "escrow not found",
+                            )?);
                         }
                     };
                     if !matches!(record.status, EscrowStatus::Locked) {
-                        return Ok(self.reject(&tx_hash_hex, payload.tx_type, &dispute.escrow_id, "escrow not locked")?);
+                        return Ok(self.reject(
+                            &tx_hash_hex,
+                            payload.tx_type,
+                            &dispute.escrow_id,
+                            "escrow not locked",
+                        )?);
                     }
                     if payload.sender != record.payer && payload.sender != record.payee {
-                        return Ok(self.reject(&tx_hash_hex, payload.tx_type, &dispute.escrow_id, "sender must be payer or payee")?);
+                        return Ok(self.reject(
+                            &tx_hash_hex,
+                            payload.tx_type,
+                            &dispute.escrow_id,
+                            "sender must be payer or payee",
+                        )?);
                     }
-                    let dispute_deadline = record.locked_at.saturating_add(record.dispute_window_sec);
+                    let dispute_deadline =
+                        record.locked_at.saturating_add(record.dispute_window_sec);
                     if now > dispute_deadline {
-                        return Ok(self.reject(&tx_hash_hex, payload.tx_type, &dispute.escrow_id, "dispute window closed")?);
+                        return Ok(self.reject(
+                            &tx_hash_hex,
+                            payload.tx_type,
+                            &dispute.escrow_id,
+                            "dispute window closed",
+                        )?);
                     }
                     if now >= record.expiry {
-                        return Ok(self.reject(&tx_hash_hex, payload.tx_type, &dispute.escrow_id, "escrow expired")?);
+                        return Ok(self.reject(
+                            &tx_hash_hex,
+                            payload.tx_type,
+                            &dispute.escrow_id,
+                            "escrow expired",
+                        )?);
                     }
                     record.status = EscrowStatus::Disputed;
                     record.disputed_at = Some(now);
@@ -1597,17 +1707,37 @@ impl EscrowLedger {
                     let record = match record {
                         Some(record) => record,
                         None => {
-                            return Ok(self.reject(&tx_hash_hex, payload.tx_type, &resolve.escrow_id, "escrow not found")?);
+                            return Ok(self.reject(
+                                &tx_hash_hex,
+                                payload.tx_type,
+                                &resolve.escrow_id,
+                                "escrow not found",
+                            )?);
                         }
                     };
                     if !matches!(record.status, EscrowStatus::Disputed) {
-                        return Ok(self.reject(&tx_hash_hex, payload.tx_type, &resolve.escrow_id, "escrow not disputed")?);
+                        return Ok(self.reject(
+                            &tx_hash_hex,
+                            payload.tx_type,
+                            &resolve.escrow_id,
+                            "escrow not disputed",
+                        )?);
                     }
                     if !self.arbitrators.contains(&payload.sender) {
-                        return Ok(self.reject(&tx_hash_hex, payload.tx_type, &resolve.escrow_id, "sender not authorized arbitrator")?);
+                        return Ok(self.reject(
+                            &tx_hash_hex,
+                            payload.tx_type,
+                            &resolve.escrow_id,
+                            "sender not authorized arbitrator",
+                        )?);
                     }
                     if now >= record.expiry {
-                        return Ok(self.reject(&tx_hash_hex, payload.tx_type, &resolve.escrow_id, "escrow expired")?);
+                        return Ok(self.reject(
+                            &tx_hash_hex,
+                            payload.tx_type,
+                            &resolve.escrow_id,
+                            "escrow expired",
+                        )?);
                     }
                     match resolve.outcome {
                         0 => {
@@ -1623,7 +1753,12 @@ impl EscrowLedger {
                                 .split_amount_to_payee
                                 .ok_or_else(|| anyhow::anyhow!("split outcome missing amount"))?;
                             if split_amount > record.amount {
-                                return Ok(self.reject(&tx_hash_hex, payload.tx_type, &resolve.escrow_id, "split exceeds escrow amount")?);
+                                return Ok(self.reject(
+                                    &tx_hash_hex,
+                                    payload.tx_type,
+                                    &resolve.escrow_id,
+                                    "split exceeds escrow amount",
+                                )?);
                             }
                             record.status = EscrowStatus::Split;
                             record.outcome = Some(EscrowOutcome::Split);
@@ -1634,7 +1769,12 @@ impl EscrowLedger {
                             record.outcome = Some(EscrowOutcome::Slash);
                         }
                         _ => {
-                            return Ok(self.reject(&tx_hash_hex, payload.tx_type, &resolve.escrow_id, "invalid resolve outcome")?);
+                            return Ok(self.reject(
+                                &tx_hash_hex,
+                                payload.tx_type,
+                                &resolve.escrow_id,
+                                "invalid resolve outcome",
+                            )?);
                         }
                     }
                     record.resolved_at = Some(now);
@@ -1658,7 +1798,13 @@ impl EscrowLedger {
         Ok(decision)
     }
 
-    fn reject(&mut self, tx_hash_hex: &str, tx_type: u64, escrow_id: &str, reason: &str) -> Result<TxDecision> {
+    fn reject(
+        &mut self,
+        tx_hash_hex: &str,
+        tx_type: u64,
+        escrow_id: &str,
+        reason: &str,
+    ) -> Result<TxDecision> {
         self.append_event(tx_hash_hex, tx_type, escrow_id, reason)?;
         Ok(TxDecision {
             accept: false,
@@ -1670,7 +1816,9 @@ impl EscrowLedger {
     fn expire_if_needed(&mut self, now: u64) -> Result<()> {
         let mut changed = false;
         for record in self.records.values_mut() {
-            if matches!(record.status, EscrowStatus::Locked | EscrowStatus::Disputed) && now >= record.expiry {
+            if matches!(record.status, EscrowStatus::Locked | EscrowStatus::Disputed)
+                && now >= record.expiry
+            {
                 record.status = EscrowStatus::Expired;
                 record.resolved_at = Some(now);
                 record.outcome = Some(EscrowOutcome::Refund);
@@ -1690,7 +1838,13 @@ impl EscrowLedger {
         Ok(())
     }
 
-    fn append_event(&self, tx_hash_hex: &str, tx_type: u64, escrow_id: &str, outcome: &str) -> Result<()> {
+    fn append_event(
+        &self,
+        tx_hash_hex: &str,
+        tx_type: u64,
+        escrow_id: &str,
+        outcome: &str,
+    ) -> Result<()> {
         let event = EscrowEvent {
             tx_hash_hex: tx_hash_hex.to_string(),
             tx_type,
@@ -1730,7 +1884,8 @@ fn load_identity_state(path: &Path) -> Result<(HashMap<String, IdentityRecord>, 
         return Ok((HashMap::new(), HashSet::new()));
     }
     let data = fs::read(path).with_context(|| format!("read identity state {}", path.display()))?;
-    let snapshot: IdentityStateSnapshot = serde_json::from_slice(&data).context("parse identity state")?;
+    let snapshot: IdentityStateSnapshot =
+        serde_json::from_slice(&data).context("parse identity state")?;
     Ok((snapshot.records, snapshot.revocations))
 }
 
@@ -1739,7 +1894,8 @@ fn load_budget_state(path: &Path) -> Result<HashMap<String, HashMap<String, Budg
         return Ok(HashMap::new());
     }
     let data = fs::read(path).with_context(|| format!("read budget state {}", path.display()))?;
-    let snapshot: BudgetStateSnapshot = serde_json::from_slice(&data).context("parse budget state")?;
+    let snapshot: BudgetStateSnapshot =
+        serde_json::from_slice(&data).context("parse budget state")?;
     Ok(snapshot.windows)
 }
 
@@ -1748,13 +1904,17 @@ fn load_skill_state(path: &Path) -> Result<HashMap<String, SkillRecord>> {
         return Ok(HashMap::new());
     }
     let data = fs::read(path).with_context(|| format!("read skill state {}", path.display()))?;
-    let snapshot: SkillStateSnapshot = serde_json::from_slice(&data).context("parse skill state")?;
+    let snapshot: SkillStateSnapshot =
+        serde_json::from_slice(&data).context("parse skill state")?;
     Ok(snapshot.records)
 }
 
 fn load_work_state(
     path: &Path,
-) -> Result<(HashMap<String, WorkOfferRecord>, HashMap<String, WorkAgreementRecord>)> {
+) -> Result<(
+    HashMap<String, WorkOfferRecord>,
+    HashMap<String, WorkAgreementRecord>,
+)> {
     if !path.exists() {
         return Ok((HashMap::new(), HashMap::new()));
     }
@@ -1772,20 +1932,37 @@ fn build_caps(list: &[BudgetCurrencyCap]) -> Result<HashMap<String, u64>> {
         if entry.max_amount == 0 {
             anyhow::bail!("budget cap max_amount must be > 0");
         }
-        if caps.insert(entry.currency.clone(), entry.max_amount).is_some() {
+        if caps
+            .insert(entry.currency.clone(), entry.max_amount)
+            .is_some()
+        {
             anyhow::bail!("duplicate budget cap for {}", entry.currency);
         }
     }
     Ok(caps)
 }
 
-fn skill_details_publish(skill_id: &str, author: &str, version: &str, manifest_hash: &[u8; 32]) -> CborValue {
+fn skill_details_publish(
+    skill_id: &str,
+    author: &str,
+    version: &str,
+    manifest_hash: &[u8; 32],
+) -> CborValue {
     CborValue::Map(vec![
-        (CborValue::Unsigned(0), CborValue::Text("skill.publish".to_string())),
-        (CborValue::Unsigned(1), CborValue::Text(skill_id.to_string())),
+        (
+            CborValue::Unsigned(0),
+            CborValue::Text("skill.publish".to_string()),
+        ),
+        (
+            CborValue::Unsigned(1),
+            CborValue::Text(skill_id.to_string()),
+        ),
         (CborValue::Unsigned(2), CborValue::Text(author.to_string())),
         (CborValue::Unsigned(3), CborValue::Text(version.to_string())),
-        (CborValue::Unsigned(4), CborValue::Bytes(manifest_hash.to_vec())),
+        (
+            CborValue::Unsigned(4),
+            CborValue::Bytes(manifest_hash.to_vec()),
+        ),
     ])
 }
 
@@ -1797,8 +1974,14 @@ fn skill_details_update(
     new_hash: &[u8; 32],
 ) -> CborValue {
     CborValue::Map(vec![
-        (CborValue::Unsigned(0), CborValue::Text("skill.update".to_string())),
-        (CborValue::Unsigned(1), CborValue::Text(skill_id.to_string())),
+        (
+            CborValue::Unsigned(0),
+            CborValue::Text("skill.update".to_string()),
+        ),
+        (
+            CborValue::Unsigned(1),
+            CborValue::Text(skill_id.to_string()),
+        ),
         (CborValue::Unsigned(2), CborValue::Text(author.to_string())),
         (CborValue::Unsigned(3), CborValue::Text(version.to_string())),
         (CborValue::Unsigned(4), CborValue::Bytes(prev_hash.to_vec())),
@@ -1806,22 +1989,45 @@ fn skill_details_update(
     ])
 }
 
-fn skill_details_revoke(skill_id: &str, author: &str, manifest_hash: &[u8], reason: &str) -> CborValue {
+fn skill_details_revoke(
+    skill_id: &str,
+    author: &str,
+    manifest_hash: &[u8],
+    reason: &str,
+) -> CborValue {
     CborValue::Map(vec![
-        (CborValue::Unsigned(0), CborValue::Text("skill.revoke".to_string())),
-        (CborValue::Unsigned(1), CborValue::Text(skill_id.to_string())),
+        (
+            CborValue::Unsigned(0),
+            CborValue::Text("skill.revoke".to_string()),
+        ),
+        (
+            CborValue::Unsigned(1),
+            CborValue::Text(skill_id.to_string()),
+        ),
         (CborValue::Unsigned(2), CborValue::Text(author.to_string())),
-        (CborValue::Unsigned(3), CborValue::Bytes(manifest_hash.to_vec())),
+        (
+            CborValue::Unsigned(3),
+            CborValue::Bytes(manifest_hash.to_vec()),
+        ),
         (CborValue::Unsigned(4), CborValue::Text(reason.to_string())),
     ])
 }
 
 fn work_details_offer_publish(offer_id: &str, issuer: &str, offer_hash: &[u8; 32]) -> CborValue {
     CborValue::Map(vec![
-        (CborValue::Unsigned(0), CborValue::Text("work.offer.publish".to_string())),
-        (CborValue::Unsigned(1), CborValue::Text(offer_id.to_string())),
+        (
+            CborValue::Unsigned(0),
+            CborValue::Text("work.offer.publish".to_string()),
+        ),
+        (
+            CborValue::Unsigned(1),
+            CborValue::Text(offer_id.to_string()),
+        ),
         (CborValue::Unsigned(2), CborValue::Text(issuer.to_string())),
-        (CborValue::Unsigned(3), CborValue::Bytes(offer_hash.to_vec())),
+        (
+            CborValue::Unsigned(3),
+            CborValue::Bytes(offer_hash.to_vec()),
+        ),
     ])
 }
 
@@ -1831,10 +2037,19 @@ fn work_details_agreement_publish(
     agreement_hash: &[u8; 32],
 ) -> CborValue {
     CborValue::Map(vec![
-        (CborValue::Unsigned(0), CborValue::Text("work.agreement.publish".to_string())),
-        (CborValue::Unsigned(1), CborValue::Text(agreement_id.to_string())),
+        (
+            CborValue::Unsigned(0),
+            CborValue::Text("work.agreement.publish".to_string()),
+        ),
+        (
+            CborValue::Unsigned(1),
+            CborValue::Text(agreement_id.to_string()),
+        ),
         (CborValue::Unsigned(2), CborValue::Text(issuer.to_string())),
-        (CborValue::Unsigned(3), CborValue::Bytes(agreement_hash.to_vec())),
+        (
+            CborValue::Unsigned(3),
+            CborValue::Bytes(agreement_hash.to_vec()),
+        ),
     ])
 }
 
@@ -1845,8 +2060,14 @@ fn work_details_agreement_update(
     new_hash: &[u8; 32],
 ) -> CborValue {
     CborValue::Map(vec![
-        (CborValue::Unsigned(0), CborValue::Text("work.agreement.update".to_string())),
-        (CborValue::Unsigned(1), CborValue::Text(agreement_id.to_string())),
+        (
+            CborValue::Unsigned(0),
+            CborValue::Text("work.agreement.update".to_string()),
+        ),
+        (
+            CborValue::Unsigned(1),
+            CborValue::Text(agreement_id.to_string()),
+        ),
         (CborValue::Unsigned(2), CborValue::Text(issuer.to_string())),
         (CborValue::Unsigned(3), CborValue::Bytes(prev_hash.to_vec())),
         (CborValue::Unsigned(4), CborValue::Bytes(new_hash.to_vec())),
@@ -1860,42 +2081,84 @@ fn work_details_agreement_close(
     reason: &str,
 ) -> CborValue {
     CborValue::Map(vec![
-        (CborValue::Unsigned(0), CborValue::Text("work.agreement.close".to_string())),
-        (CborValue::Unsigned(1), CborValue::Text(agreement_id.to_string())),
+        (
+            CborValue::Unsigned(0),
+            CborValue::Text("work.agreement.close".to_string()),
+        ),
+        (
+            CborValue::Unsigned(1),
+            CborValue::Text(agreement_id.to_string()),
+        ),
         (CborValue::Unsigned(2), CborValue::Text(actor.to_string())),
-        (CborValue::Unsigned(3), CborValue::Bytes(agreement_hash.to_vec())),
+        (
+            CborValue::Unsigned(3),
+            CborValue::Bytes(agreement_hash.to_vec()),
+        ),
         (CborValue::Unsigned(4), CborValue::Text(reason.to_string())),
     ])
 }
 
 fn escrow_details_lock(lock: &anetsdk::EscrowLockPayload) -> CborValue {
     CborValue::Map(vec![
-        (CborValue::Unsigned(0), CborValue::Text("escrow.lock".to_string())),
-        (CborValue::Unsigned(1), CborValue::Text(lock.escrow_id.clone())),
+        (
+            CborValue::Unsigned(0),
+            CborValue::Text("escrow.lock".to_string()),
+        ),
+        (
+            CborValue::Unsigned(1),
+            CborValue::Text(lock.escrow_id.clone()),
+        ),
         (CborValue::Unsigned(2), CborValue::Text(lock.payer.clone())),
         (CborValue::Unsigned(3), CborValue::Text(lock.payee.clone())),
         (CborValue::Unsigned(4), CborValue::Unsigned(lock.amount)),
-        (CborValue::Unsigned(5), CborValue::Text(lock.currency.clone())),
+        (
+            CborValue::Unsigned(5),
+            CborValue::Text(lock.currency.clone()),
+        ),
         (CborValue::Unsigned(6), CborValue::Unsigned(lock.expiry)),
     ])
 }
 
 fn escrow_details_release(record: &EscrowRecord, evidence_hash: &[u8]) -> CborValue {
     CborValue::Map(vec![
-        (CborValue::Unsigned(0), CborValue::Text("escrow.release".to_string())),
-        (CborValue::Unsigned(1), CborValue::Text(record.escrow_id.clone())),
-        (CborValue::Unsigned(2), CborValue::Text(record.payer.clone())),
-        (CborValue::Unsigned(3), CborValue::Text(record.payee.clone())),
+        (
+            CborValue::Unsigned(0),
+            CborValue::Text("escrow.release".to_string()),
+        ),
+        (
+            CborValue::Unsigned(1),
+            CborValue::Text(record.escrow_id.clone()),
+        ),
+        (
+            CborValue::Unsigned(2),
+            CborValue::Text(record.payer.clone()),
+        ),
+        (
+            CborValue::Unsigned(3),
+            CborValue::Text(record.payee.clone()),
+        ),
         (CborValue::Unsigned(4), CborValue::Unsigned(record.amount)),
-        (CborValue::Unsigned(5), CborValue::Text(record.currency.clone())),
-        (CborValue::Unsigned(6), CborValue::Bytes(evidence_hash.to_vec())),
+        (
+            CborValue::Unsigned(5),
+            CborValue::Text(record.currency.clone()),
+        ),
+        (
+            CborValue::Unsigned(6),
+            CborValue::Bytes(evidence_hash.to_vec()),
+        ),
     ])
 }
 
 fn escrow_details_dispute(record: &EscrowRecord, reason: &str, evidence: &[u8]) -> CborValue {
     CborValue::Map(vec![
-        (CborValue::Unsigned(0), CborValue::Text("escrow.dispute".to_string())),
-        (CborValue::Unsigned(1), CborValue::Text(record.escrow_id.clone())),
+        (
+            CborValue::Unsigned(0),
+            CborValue::Text("escrow.dispute".to_string()),
+        ),
+        (
+            CborValue::Unsigned(1),
+            CborValue::Text(record.escrow_id.clone()),
+        ),
         (CborValue::Unsigned(2), CborValue::Text(reason.to_string())),
         (CborValue::Unsigned(3), CborValue::Bytes(evidence.to_vec())),
     ])
@@ -1903,12 +2166,27 @@ fn escrow_details_dispute(record: &EscrowRecord, reason: &str, evidence: &[u8]) 
 
 fn escrow_details_resolve(record: &EscrowRecord) -> CborValue {
     let mut entries = vec![
-        (CborValue::Unsigned(0), CborValue::Text("escrow.resolve".to_string())),
-        (CborValue::Unsigned(1), CborValue::Text(record.escrow_id.clone())),
-        (CborValue::Unsigned(2), CborValue::Text(record.payer.clone())),
-        (CborValue::Unsigned(3), CborValue::Text(record.payee.clone())),
+        (
+            CborValue::Unsigned(0),
+            CborValue::Text("escrow.resolve".to_string()),
+        ),
+        (
+            CborValue::Unsigned(1),
+            CborValue::Text(record.escrow_id.clone()),
+        ),
+        (
+            CborValue::Unsigned(2),
+            CborValue::Text(record.payer.clone()),
+        ),
+        (
+            CborValue::Unsigned(3),
+            CborValue::Text(record.payee.clone()),
+        ),
         (CborValue::Unsigned(4), CborValue::Unsigned(record.amount)),
-        (CborValue::Unsigned(5), CborValue::Text(record.currency.clone())),
+        (
+            CborValue::Unsigned(5),
+            CborValue::Text(record.currency.clone()),
+        ),
     ];
     if let Some(outcome) = &record.outcome {
         let outcome_val = match outcome {
@@ -1927,29 +2205,62 @@ fn escrow_details_resolve(record: &EscrowRecord) -> CborValue {
 
 fn identity_details_register(payload: &anetsdk::IdentityRegisterPayload) -> CborValue {
     CborValue::Map(vec![
-        (CborValue::Unsigned(0), CborValue::Text("identity.register".to_string())),
-        (CborValue::Unsigned(1), CborValue::Text(payload.agent_id.clone())),
-        (CborValue::Unsigned(2), CborValue::Bytes(payload.pk_ed25519.clone())),
-        (CborValue::Unsigned(3), CborValue::Bytes(payload.pk_x25519.clone())),
+        (
+            CborValue::Unsigned(0),
+            CborValue::Text("identity.register".to_string()),
+        ),
+        (
+            CborValue::Unsigned(1),
+            CborValue::Text(payload.agent_id.clone()),
+        ),
+        (
+            CborValue::Unsigned(2),
+            CborValue::Bytes(payload.pk_ed25519.clone()),
+        ),
+        (
+            CborValue::Unsigned(3),
+            CborValue::Bytes(payload.pk_x25519.clone()),
+        ),
         (CborValue::Unsigned(4), CborValue::Unsigned(payload.created)),
     ])
 }
 
 fn identity_details_rotate(payload: &anetsdk::IdentityRotatePayload) -> CborValue {
     CborValue::Map(vec![
-        (CborValue::Unsigned(0), CborValue::Text("identity.rotate".to_string())),
-        (CborValue::Unsigned(1), CborValue::Text(payload.agent_id.clone())),
-        (CborValue::Unsigned(2), CborValue::Bytes(payload.pk_ed25519.clone())),
-        (CborValue::Unsigned(3), CborValue::Bytes(payload.pk_x25519.clone())),
+        (
+            CborValue::Unsigned(0),
+            CborValue::Text("identity.rotate".to_string()),
+        ),
+        (
+            CborValue::Unsigned(1),
+            CborValue::Text(payload.agent_id.clone()),
+        ),
+        (
+            CborValue::Unsigned(2),
+            CborValue::Bytes(payload.pk_ed25519.clone()),
+        ),
+        (
+            CborValue::Unsigned(3),
+            CborValue::Bytes(payload.pk_x25519.clone()),
+        ),
         (CborValue::Unsigned(4), CborValue::Unsigned(payload.ts)),
     ])
 }
 
 fn identity_details_revoke(payload: &anetsdk::CredentialRevokePayload) -> CborValue {
     CborValue::Map(vec![
-        (CborValue::Unsigned(0), CborValue::Text("credential.revoke".to_string())),
-        (CborValue::Unsigned(1), CborValue::Text(payload.issuer.clone())),
-        (CborValue::Unsigned(2), CborValue::Bytes(payload.credential_id_hash.clone())),
+        (
+            CborValue::Unsigned(0),
+            CborValue::Text("credential.revoke".to_string()),
+        ),
+        (
+            CborValue::Unsigned(1),
+            CborValue::Text(payload.issuer.clone()),
+        ),
+        (
+            CborValue::Unsigned(2),
+            CborValue::Bytes(payload.credential_id_hash.clone()),
+        ),
         (CborValue::Unsigned(3), CborValue::Unsigned(payload.ts)),
     ])
 }

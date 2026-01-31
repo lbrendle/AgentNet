@@ -9,7 +9,8 @@ pub struct SequenceStore {
 
 impl SequenceStore {
     pub fn load(state_dir: &Path, name: &str) -> Result<Self> {
-        fs::create_dir_all(state_dir).with_context(|| format!("create state dir {}", state_dir.display()))?;
+        fs::create_dir_all(state_dir)
+            .with_context(|| format!("create state dir {}", state_dir.display()))?;
         let path = state_dir.join(name);
         let current = match fs::read_to_string(&path) {
             Ok(data) => data.trim().parse::<u64>().unwrap_or(0),

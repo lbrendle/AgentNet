@@ -1,11 +1,11 @@
+use crate::schema::{
+    expect_bytes, expect_bytes_len, expect_map, expect_text, expect_text_array, expect_u16,
+    expect_u64, expect_u8, get_optional, get_required,
+};
 use crate::signed::{split_signed_map, with_signature};
 use crate::{
     decode_canonical, encode_canonical, sha256, sign_ed25519_hash, verify_ed25519_hash, CborValue,
     Error,
-};
-use crate::schema::{
-    expect_bytes, expect_bytes_len, expect_map, expect_text, expect_text_array, expect_u16,
-    expect_u64, expect_u8, get_optional, get_required,
 };
 
 const SKILL_SIG_KEY: u64 = 16;
@@ -130,7 +130,10 @@ pub fn decode_skill_manifest(data: &[u8]) -> Result<SkillManifest, Error> {
     parse_skill_manifest(&value)
 }
 
-pub fn build_skill_manifest(payload: &SkillManifestPayload, secret_key: &[u8]) -> Result<Vec<u8>, Error> {
+pub fn build_skill_manifest(
+    payload: &SkillManifestPayload,
+    secret_key: &[u8],
+) -> Result<Vec<u8>, Error> {
     payload.validate()?;
     let payload_value = payload.to_cbor()?;
     let payload_cbor = encode_canonical(&payload_value)?;
@@ -140,7 +143,10 @@ pub fn build_skill_manifest(payload: &SkillManifestPayload, secret_key: &[u8]) -
     encode_canonical(&full)
 }
 
-pub fn verify_skill_manifest(data: &[u8], public_key: &[u8]) -> Result<SkillManifestPayload, Error> {
+pub fn verify_skill_manifest(
+    data: &[u8],
+    public_key: &[u8],
+) -> Result<SkillManifestPayload, Error> {
     let value = decode_canonical(data)?;
     let (payload_entries, signature) = split_signed_map(&value, SKILL_SIG_KEY)?;
     let payload_value = CborValue::Map(payload_entries);
@@ -205,7 +211,10 @@ pub fn skill_publish_payload_to_cbor(payload: &SkillPublishPayload) -> Result<Cb
     }
     decode_skill_manifest(&payload.manifest)?;
     Ok(CborValue::Map(vec![
-        (CborValue::Unsigned(0), CborValue::Bytes(payload.manifest.clone())),
+        (
+            CborValue::Unsigned(0),
+            CborValue::Bytes(payload.manifest.clone()),
+        ),
         (CborValue::Unsigned(1), CborValue::Unsigned(payload.ts)),
     ]))
 }
@@ -222,12 +231,18 @@ pub fn skill_update_payload_to_cbor(payload: &SkillUpdatePayload) -> Result<Cbor
     }
     decode_skill_manifest(&payload.manifest)?;
     Ok(CborValue::Map(vec![
-        (CborValue::Unsigned(0), CborValue::Text(payload.skill_id.clone())),
+        (
+            CborValue::Unsigned(0),
+            CborValue::Text(payload.skill_id.clone()),
+        ),
         (
             CborValue::Unsigned(1),
             CborValue::Bytes(payload.prev_manifest_hash.clone()),
         ),
-        (CborValue::Unsigned(2), CborValue::Bytes(payload.manifest.clone())),
+        (
+            CborValue::Unsigned(2),
+            CborValue::Bytes(payload.manifest.clone()),
+        ),
         (CborValue::Unsigned(3), CborValue::Unsigned(payload.ts)),
     ]))
 }
@@ -246,9 +261,18 @@ pub fn skill_revoke_payload_to_cbor(payload: &SkillRevokePayload) -> Result<Cbor
         return Err(Error::Cbor("invalid manifest hash length"));
     }
     Ok(CborValue::Map(vec![
-        (CborValue::Unsigned(0), CborValue::Text(payload.skill_id.clone())),
-        (CborValue::Unsigned(1), CborValue::Bytes(payload.manifest_hash.clone())),
-        (CborValue::Unsigned(2), CborValue::Text(payload.reason.clone())),
+        (
+            CborValue::Unsigned(0),
+            CborValue::Text(payload.skill_id.clone()),
+        ),
+        (
+            CborValue::Unsigned(1),
+            CborValue::Bytes(payload.manifest_hash.clone()),
+        ),
+        (
+            CborValue::Unsigned(2),
+            CborValue::Text(payload.reason.clone()),
+        ),
         (CborValue::Unsigned(3), CborValue::Unsigned(payload.ts)),
     ]))
 }
@@ -262,12 +286,23 @@ impl SkillArtifact {
             return Err(Error::Cbor("artifact digest must be 32 bytes"));
         }
         Ok(CborValue::Map(vec![
-            (CborValue::Unsigned(0), CborValue::Unsigned(self.kind as u64)),
-            (CborValue::Unsigned(1), CborValue::Bytes(self.digest.clone())),
+            (
+                CborValue::Unsigned(0),
+                CborValue::Unsigned(self.kind as u64),
+            ),
+            (
+                CborValue::Unsigned(1),
+                CborValue::Bytes(self.digest.clone()),
+            ),
             (CborValue::Unsigned(2), CborValue::Unsigned(self.size)),
             (
                 CborValue::Unsigned(3),
-                CborValue::Array(self.uris.iter().map(|s| CborValue::Text(s.clone())).collect()),
+                CborValue::Array(
+                    self.uris
+                        .iter()
+                        .map(|s| CborValue::Text(s.clone()))
+                        .collect(),
+                ),
             ),
         ]))
     }
@@ -277,25 +312,55 @@ impl SkillManifestPayload {
     pub fn to_cbor(&self) -> Result<CborValue, Error> {
         self.validate()?;
         let mut entries = Vec::new();
-        entries.push((CborValue::Unsigned(0), CborValue::Text(self.skill_id.clone())));
+        entries.push((
+            CborValue::Unsigned(0),
+            CborValue::Text(self.skill_id.clone()),
+        ));
         entries.push((CborValue::Unsigned(1), CborValue::Text(self.author.clone())));
         entries.push((CborValue::Unsigned(2), CborValue::Text(self.name.clone())));
-        entries.push((CborValue::Unsigned(3), CborValue::Text(self.version.clone())));
-        entries.push((CborValue::Unsigned(4), CborValue::Text(self.summary.clone())));
-        entries.push((CborValue::Unsigned(5), CborValue::Text(self.license.clone())));
+        entries.push((
+            CborValue::Unsigned(3),
+            CborValue::Text(self.version.clone()),
+        ));
+        entries.push((
+            CborValue::Unsigned(4),
+            CborValue::Text(self.summary.clone()),
+        ));
+        entries.push((
+            CborValue::Unsigned(5),
+            CborValue::Text(self.license.clone()),
+        ));
         entries.push((
             CborValue::Unsigned(6),
-            CborValue::Array(self.capabilities.iter().map(|s| CborValue::Text(s.clone())).collect()),
+            CborValue::Array(
+                self.capabilities
+                    .iter()
+                    .map(|s| CborValue::Text(s.clone()))
+                    .collect(),
+            ),
         ));
         entries.push((
             CborValue::Unsigned(7),
-            CborValue::Array(self.permissions.iter().map(|s| CborValue::Text(s.clone())).collect()),
+            CborValue::Array(
+                self.permissions
+                    .iter()
+                    .map(|s| CborValue::Text(s.clone()))
+                    .collect(),
+            ),
         ));
-        entries.push((CborValue::Unsigned(8), CborValue::Unsigned(self.sandbox_class as u64)));
+        entries.push((
+            CborValue::Unsigned(8),
+            CborValue::Unsigned(self.sandbox_class as u64),
+        ));
         if let Some(endpoints) = &self.endpoints {
             entries.push((
                 CborValue::Unsigned(9),
-                CborValue::Array(endpoints.iter().map(|s| CborValue::Text(s.clone())).collect()),
+                CborValue::Array(
+                    endpoints
+                        .iter()
+                        .map(|s| CborValue::Text(s.clone()))
+                        .collect(),
+                ),
             ));
         }
         if let Some(artifacts) = &self.artifacts {

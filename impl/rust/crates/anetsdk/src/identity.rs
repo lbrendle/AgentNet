@@ -24,7 +24,9 @@ pub struct CredentialRevokePayload {
     pub ts: u64,
 }
 
-pub fn parse_identity_register_payload(value: &CborValue) -> Result<IdentityRegisterPayload, Error> {
+pub fn parse_identity_register_payload(
+    value: &CborValue,
+) -> Result<IdentityRegisterPayload, Error> {
     let map = expect_map(value)?;
     Ok(IdentityRegisterPayload {
         agent_id: expect_text(get_required(&map, 0)?)?,
@@ -44,7 +46,9 @@ pub fn parse_identity_rotate_payload(value: &CborValue) -> Result<IdentityRotate
     })
 }
 
-pub fn parse_credential_revoke_payload(value: &CborValue) -> Result<CredentialRevokePayload, Error> {
+pub fn parse_credential_revoke_payload(
+    value: &CborValue,
+) -> Result<CredentialRevokePayload, Error> {
     let map = expect_map(value)?;
     Ok(CredentialRevokePayload {
         issuer: expect_text(get_required(&map, 0)?)?,
@@ -55,26 +59,50 @@ pub fn parse_credential_revoke_payload(value: &CborValue) -> Result<CredentialRe
 
 pub fn identity_register_payload_to_cbor(payload: &IdentityRegisterPayload) -> CborValue {
     CborValue::Map(vec![
-        (CborValue::Unsigned(0), CborValue::Text(payload.agent_id.clone())),
-        (CborValue::Unsigned(1), CborValue::Bytes(payload.pk_ed25519.clone())),
-        (CborValue::Unsigned(2), CborValue::Bytes(payload.pk_x25519.clone())),
+        (
+            CborValue::Unsigned(0),
+            CborValue::Text(payload.agent_id.clone()),
+        ),
+        (
+            CborValue::Unsigned(1),
+            CborValue::Bytes(payload.pk_ed25519.clone()),
+        ),
+        (
+            CborValue::Unsigned(2),
+            CborValue::Bytes(payload.pk_x25519.clone()),
+        ),
         (CborValue::Unsigned(3), CborValue::Unsigned(payload.created)),
     ])
 }
 
 pub fn identity_rotate_payload_to_cbor(payload: &IdentityRotatePayload) -> CborValue {
     CborValue::Map(vec![
-        (CborValue::Unsigned(0), CborValue::Text(payload.agent_id.clone())),
-        (CborValue::Unsigned(1), CborValue::Bytes(payload.pk_ed25519.clone())),
-        (CborValue::Unsigned(2), CborValue::Bytes(payload.pk_x25519.clone())),
+        (
+            CborValue::Unsigned(0),
+            CborValue::Text(payload.agent_id.clone()),
+        ),
+        (
+            CborValue::Unsigned(1),
+            CborValue::Bytes(payload.pk_ed25519.clone()),
+        ),
+        (
+            CborValue::Unsigned(2),
+            CborValue::Bytes(payload.pk_x25519.clone()),
+        ),
         (CborValue::Unsigned(3), CborValue::Unsigned(payload.ts)),
     ])
 }
 
 pub fn credential_revoke_payload_to_cbor(payload: &CredentialRevokePayload) -> CborValue {
     CborValue::Map(vec![
-        (CborValue::Unsigned(0), CborValue::Text(payload.issuer.clone())),
-        (CborValue::Unsigned(1), CborValue::Bytes(payload.credential_id_hash.clone())),
+        (
+            CborValue::Unsigned(0),
+            CborValue::Text(payload.issuer.clone()),
+        ),
+        (
+            CborValue::Unsigned(1),
+            CborValue::Bytes(payload.credential_id_hash.clone()),
+        ),
         (CborValue::Unsigned(2), CborValue::Unsigned(payload.ts)),
     ])
 }

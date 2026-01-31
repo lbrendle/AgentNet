@@ -2,6 +2,7 @@ mod db;
 mod ingest;
 mod models;
 mod state;
+mod util;
 
 use crate::db::IndexDb;
 use crate::ingest::{
@@ -10,7 +11,7 @@ use crate::ingest::{
     ingest_work_agreement, ingest_work_offer, ingest_work_registry_state,
 };
 use crate::models::{
-    AgentRecordIngest, CommunityRecordIngest, IdentityStateIngest, ReceiptIngest,
+    AgentRecordIngest, CommunityRecordIngest, IdentityStateIngest, ReceiptIngest, SearchQuery,
     ServiceRecordIngest, SkillManifestIngest, SkillRegistryStateIngest, WorkAgreementIngest,
     WorkOfferIngest, WorkRegistryStateIngest,
 };
@@ -21,7 +22,6 @@ use axum::http::StatusCode;
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use clap::Parser;
-use serde::Deserialize;
 use serde_json::json;
 use std::net::SocketAddr;
 use std::path::PathBuf;
@@ -42,19 +42,6 @@ struct Cli {
     skill_registry_state: Option<PathBuf>,
     #[arg(long)]
     work_registry_state: Option<PathBuf>,
-}
-
-#[derive(Deserialize)]
-struct SearchQuery {
-    q: Option<String>,
-    capability: Option<String>,
-    sandbox_class: Option<u64>,
-    currency: Option<String>,
-    service_type: Option<u16>,
-    provider_id: Option<String>,
-    status: Option<String>,
-    limit: Option<u64>,
-    offset: Option<u64>,
 }
 
 #[tokio::main]
@@ -91,11 +78,23 @@ async fn main() -> Result<()> {
         .route("/ingest/community_record", post(ingest_community))
         .route("/ingest/skill_manifest", post(ingest_skill))
         .route("/ingest/work_offer", post(ingest_work_offer_handler))
-        .route("/ingest/work_agreement", post(ingest_work_agreement_handler))
+        .route(
+            "/ingest/work_agreement",
+            post(ingest_work_agreement_handler),
+        )
         .route("/ingest/receipt", post(ingest_receipt_handler))
-        .route("/ingest/identity_state", post(ingest_identity_state_handler))
-        .route("/ingest/skill_registry_state", post(ingest_skill_state_handler))
-        .route("/ingest/work_registry_state", post(ingest_work_state_handler))
+        .route(
+            "/ingest/identity_state",
+            post(ingest_identity_state_handler),
+        )
+        .route(
+            "/ingest/skill_registry_state",
+            post(ingest_skill_state_handler),
+        )
+        .route(
+            "/ingest/work_registry_state",
+            post(ingest_work_state_handler),
+        )
         .route("/search/agents", get(search_agents))
         .route("/search/skills", get(search_skills))
         .route("/search/work_offers", get(search_work_offers))
@@ -113,7 +112,9 @@ async fn health() -> Json<serde_json::Value> {
     Json(json!({"status": "ok"}))
 }
 
-async fn stats(State(state): State<Arc<IndexState>>) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+async fn stats(
+    State(state): State<Arc<IndexState>>,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     let stats = state.stats().await.map_err(err_to_response)?;
     Ok(Json(stats))
 }
@@ -122,7 +123,9 @@ async fn ingest_agent(
     State(state): State<Arc<IndexState>>,
     Json(payload): Json<AgentRecordIngest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    ingest_agent_record(state, payload).await.map_err(err_to_response)?;
+    ingest_agent_record(state, payload)
+        .await
+        .map_err(err_to_response)?;
     Ok(Json(json!({"status": "ok"})))
 }
 
@@ -130,7 +133,9 @@ async fn ingest_service(
     State(state): State<Arc<IndexState>>,
     Json(payload): Json<ServiceRecordIngest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    ingest_service_record(state, payload).await.map_err(err_to_response)?;
+    ingest_service_record(state, payload)
+        .await
+        .map_err(err_to_response)?;
     Ok(Json(json!({"status": "ok"})))
 }
 
@@ -138,7 +143,9 @@ async fn ingest_community(
     State(state): State<Arc<IndexState>>,
     Json(payload): Json<CommunityRecordIngest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    ingest_community_record(state, payload).await.map_err(err_to_response)?;
+    ingest_community_record(state, payload)
+        .await
+        .map_err(err_to_response)?;
     Ok(Json(json!({"status": "ok"})))
 }
 
@@ -146,7 +153,9 @@ async fn ingest_skill(
     State(state): State<Arc<IndexState>>,
     Json(payload): Json<SkillManifestIngest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    ingest_skill_manifest(state, payload).await.map_err(err_to_response)?;
+    ingest_skill_manifest(state, payload)
+        .await
+        .map_err(err_to_response)?;
     Ok(Json(json!({"status": "ok"})))
 }
 
@@ -154,7 +163,9 @@ async fn ingest_work_offer_handler(
     State(state): State<Arc<IndexState>>,
     Json(payload): Json<WorkOfferIngest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    ingest_work_offer(state, payload).await.map_err(err_to_response)?;
+    ingest_work_offer(state, payload)
+        .await
+        .map_err(err_to_response)?;
     Ok(Json(json!({"status": "ok"})))
 }
 
@@ -162,7 +173,9 @@ async fn ingest_work_agreement_handler(
     State(state): State<Arc<IndexState>>,
     Json(payload): Json<WorkAgreementIngest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    ingest_work_agreement(state, payload).await.map_err(err_to_response)?;
+    ingest_work_agreement(state, payload)
+        .await
+        .map_err(err_to_response)?;
     Ok(Json(json!({"status": "ok"})))
 }
 
@@ -170,7 +183,9 @@ async fn ingest_receipt_handler(
     State(state): State<Arc<IndexState>>,
     Json(payload): Json<ReceiptIngest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    ingest_receipt(state, payload).await.map_err(err_to_response)?;
+    ingest_receipt(state, payload)
+        .await
+        .map_err(err_to_response)?;
     Ok(Json(json!({"status": "ok"})))
 }
 
@@ -178,7 +193,9 @@ async fn ingest_identity_state_handler(
     State(state): State<Arc<IndexState>>,
     Json(payload): Json<IdentityStateIngest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    ingest_identity_state(state, payload).await.map_err(err_to_response)?;
+    ingest_identity_state(state, payload)
+        .await
+        .map_err(err_to_response)?;
     Ok(Json(json!({"status": "ok"})))
 }
 
@@ -222,7 +239,10 @@ async fn search_work_offers(
     State(state): State<Arc<IndexState>>,
     Query(query): Query<SearchQuery>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    let result = state.search_work_offers(query).await.map_err(err_to_response)?;
+    let result = state
+        .search_work_offers(query)
+        .await
+        .map_err(err_to_response)?;
     Ok(Json(result))
 }
 
@@ -230,7 +250,10 @@ async fn search_services(
     State(state): State<Arc<IndexState>>,
     Query(query): Query<SearchQuery>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    let result = state.search_services(query).await.map_err(err_to_response)?;
+    let result = state
+        .search_services(query)
+        .await
+        .map_err(err_to_response)?;
     Ok(Json(result))
 }
 
@@ -238,7 +261,10 @@ async fn search_work_agreements(
     State(state): State<Arc<IndexState>>,
     Query(query): Query<SearchQuery>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    let result = state.search_work_agreements(query).await.map_err(err_to_response)?;
+    let result = state
+        .search_work_agreements(query)
+        .await
+        .map_err(err_to_response)?;
     Ok(Json(result))
 }
 

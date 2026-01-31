@@ -1,5 +1,5 @@
-use anyhow::{Context, Result};
 use anetsdk::{decode_canonical, encode_canonical, sha256, verify_ed25519_hash, CborValue};
+use anyhow::{Context, Result};
 use clap::Parser;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -97,15 +97,19 @@ fn main() -> Result<()> {
 }
 
 fn load_config(path: &Path) -> Result<Config> {
-    let data = fs::read_to_string(path).with_context(|| format!("read config {}", path.display()))?;
+    let data =
+        fs::read_to_string(path).with_context(|| format!("read config {}", path.display()))?;
     let cfg: Config = toml::from_str(&data).context("parse config")?;
     Ok(cfg)
 }
 
 fn read_request() -> Result<EconomicProofValidationRequest> {
     let mut input = String::new();
-    std::io::stdin().read_to_string(&mut input).context("read stdin")?;
-    let request: EconomicProofValidationRequest = serde_json::from_str(&input).context("parse request")?;
+    std::io::stdin()
+        .read_to_string(&mut input)
+        .context("read stdin")?;
+    let request: EconomicProofValidationRequest =
+        serde_json::from_str(&input).context("parse request")?;
     Ok(request)
 }
 
@@ -297,14 +301,29 @@ fn parse_voucher(value: &CborValue) -> Result<VoucherPayload> {
 
 fn verify_voucher_signature(voucher: &VoucherPayload, issuer_pk: &[u8]) -> Result<()> {
     let payload_map = CborValue::Map(vec![
-        (CborValue::Unsigned(0), CborValue::Text(voucher.issuer.clone())),
-        (CborValue::Unsigned(1), CborValue::Text(voucher.payer.clone())),
+        (
+            CborValue::Unsigned(0),
+            CborValue::Text(voucher.issuer.clone()),
+        ),
+        (
+            CborValue::Unsigned(1),
+            CborValue::Text(voucher.payer.clone()),
+        ),
         (CborValue::Unsigned(2), CborValue::Unsigned(voucher.amount)),
-        (CborValue::Unsigned(3), CborValue::Text(voucher.currency.clone())),
-        (CborValue::Unsigned(4), CborValue::Text(voucher.purpose.clone())),
+        (
+            CborValue::Unsigned(3),
+            CborValue::Text(voucher.currency.clone()),
+        ),
+        (
+            CborValue::Unsigned(4),
+            CborValue::Text(voucher.purpose.clone()),
+        ),
         (CborValue::Unsigned(5), CborValue::Unsigned(voucher.ts)),
         (CborValue::Unsigned(6), CborValue::Unsigned(voucher.exp)),
-        (CborValue::Unsigned(7), CborValue::Bytes(voucher.nonce.clone())),
+        (
+            CborValue::Unsigned(7),
+            CborValue::Bytes(voucher.nonce.clone()),
+        ),
     ]);
     let payload_cbor = encode_canonical(&payload_map)?;
     let hash = sha256(&payload_cbor);
@@ -427,7 +446,9 @@ fn parse_hex_u64(value: &str) -> Result<u64> {
 
 fn load_nonce_state(path: &Path) -> Result<NonceState> {
     if !path.exists() {
-        return Ok(NonceState { used: HashSet::new() });
+        return Ok(NonceState {
+            used: HashSet::new(),
+        });
     }
     let data = fs::read(path).with_context(|| format!("read nonce state {}", path.display()))?;
     let state: NonceState = serde_json::from_slice(&data).context("parse nonce state")?;

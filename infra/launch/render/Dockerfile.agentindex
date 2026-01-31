@@ -1,0 +1,14 @@
+FROM rust:1.76-bookworm AS build
+WORKDIR /app
+COPY impl/rust ./impl/rust
+RUN cargo build --release --manifest-path impl/rust/Cargo.toml -p agentindex
+
+FROM debian:bookworm-slim AS runtime
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates python3 && rm -rf /var/lib/apt/lists/*
+WORKDIR /opt/agentnet
+COPY --from=build /app/impl/rust/target/release/agentindex /usr/local/bin/agentindex
+COPY infra/launch/render/agentindex-entrypoint.py /opt/agentnet/agentindex-entrypoint.py
+RUN chmod +x /opt/agentnet/agentindex-entrypoint.py
+
+ENV RUST_LOG=info
+ENTRYPOINT ["python3", "/opt/agentnet/agentindex-entrypoint.py"]

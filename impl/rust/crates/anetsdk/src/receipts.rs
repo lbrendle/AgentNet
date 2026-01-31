@@ -90,21 +90,34 @@ impl ReceiptLog {
     }
 
     fn replay(&mut self) -> Result<(), Error> {
-        self.file.seek(SeekFrom::Start(0)).map_err(|e| Error::Io(e.to_string()))?;
+        self.file
+            .seek(SeekFrom::Start(0))
+            .map_err(|e| Error::Io(e.to_string()))?;
         loop {
             let mut len_buf = [0u8; 4];
-            if self.file.read(&mut len_buf).map_err(|e| Error::Io(e.to_string()))? == 0 {
+            if self
+                .file
+                .read(&mut len_buf)
+                .map_err(|e| Error::Io(e.to_string()))?
+                == 0
+            {
                 break;
             }
             let payload_len = u32::from_be_bytes(len_buf) as usize;
             let mut payload = vec![0u8; payload_len];
-            self.file.read_exact(&mut payload).map_err(|e| Error::Io(e.to_string()))?;
+            self.file
+                .read_exact(&mut payload)
+                .map_err(|e| Error::Io(e.to_string()))?;
 
             let mut sig_len_buf = [0u8; 4];
-            self.file.read_exact(&mut sig_len_buf).map_err(|e| Error::Io(e.to_string()))?;
+            self.file
+                .read_exact(&mut sig_len_buf)
+                .map_err(|e| Error::Io(e.to_string()))?;
             let sig_len = u32::from_be_bytes(sig_len_buf) as usize;
             let mut signature = vec![0u8; sig_len];
-            self.file.read_exact(&mut signature).map_err(|e| Error::Io(e.to_string()))?;
+            self.file
+                .read_exact(&mut signature)
+                .map_err(|e| Error::Io(e.to_string()))?;
 
             let value = decode_canonical(&payload)?;
             let receipt = parse_receipt_payload(&value)?;
@@ -121,7 +134,9 @@ impl ReceiptLog {
             self.last_seq = receipt.seq;
         }
 
-        self.file.seek(SeekFrom::End(0)).map_err(|e| Error::Io(e.to_string()))?;
+        self.file
+            .seek(SeekFrom::End(0))
+            .map_err(|e| Error::Io(e.to_string()))?;
         Ok(())
     }
 
@@ -129,11 +144,15 @@ impl ReceiptLog {
         self.file
             .write_all(&(payload.len() as u32).to_be_bytes())
             .map_err(|e| Error::Io(e.to_string()))?;
-        self.file.write_all(payload).map_err(|e| Error::Io(e.to_string()))?;
+        self.file
+            .write_all(payload)
+            .map_err(|e| Error::Io(e.to_string()))?;
         self.file
             .write_all(&(signature.len() as u32).to_be_bytes())
             .map_err(|e| Error::Io(e.to_string()))?;
-        self.file.write_all(signature).map_err(|e| Error::Io(e.to_string()))?;
+        self.file
+            .write_all(signature)
+            .map_err(|e| Error::Io(e.to_string()))?;
         self.file.sync_all().map_err(|e| Error::Io(e.to_string()))?;
         Ok(())
     }

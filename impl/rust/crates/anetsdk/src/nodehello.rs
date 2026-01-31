@@ -1,8 +1,8 @@
+use crate::signed::{split_signed_map, with_signature};
 use crate::{
     decode_canonical, encode_canonical, parse_nodehello_payload, sha256, sign_ed25519_hash,
     verify_ed25519_hash, CborValue, Error, NodeHello,
 };
-use crate::signed::{split_signed_map, with_signature};
 
 #[derive(Debug, Clone)]
 pub struct NodeHelloPayload {
@@ -19,11 +19,36 @@ pub struct NodeHelloPayload {
 impl NodeHelloPayload {
     pub fn to_cbor(&self) -> CborValue {
         CborValue::Map(vec![
-            (CborValue::Unsigned(0), CborValue::Array(self.protocols.iter().map(|s| CborValue::Text(s.clone())).collect())),
-            (CborValue::Unsigned(1), CborValue::Text(self.chain_id.clone())),
-            (CborValue::Unsigned(2), CborValue::Text(self.node_id.clone())),
-            (CborValue::Unsigned(3), CborValue::Bytes(self.node_pubkey.clone())),
-            (CborValue::Unsigned(4), CborValue::Array(self.roles.iter().map(|s| CborValue::Text(s.clone())).collect())),
+            (
+                CborValue::Unsigned(0),
+                CborValue::Array(
+                    self.protocols
+                        .iter()
+                        .map(|s| CborValue::Text(s.clone()))
+                        .collect(),
+                ),
+            ),
+            (
+                CborValue::Unsigned(1),
+                CborValue::Text(self.chain_id.clone()),
+            ),
+            (
+                CborValue::Unsigned(2),
+                CborValue::Text(self.node_id.clone()),
+            ),
+            (
+                CborValue::Unsigned(3),
+                CborValue::Bytes(self.node_pubkey.clone()),
+            ),
+            (
+                CborValue::Unsigned(4),
+                CborValue::Array(
+                    self.roles
+                        .iter()
+                        .map(|s| CborValue::Text(s.clone()))
+                        .collect(),
+                ),
+            ),
             (CborValue::Unsigned(5), self.features.clone()),
             (CborValue::Unsigned(6), CborValue::Unsigned(self.time)),
             (CborValue::Unsigned(7), CborValue::Bytes(self.nonce.clone())),

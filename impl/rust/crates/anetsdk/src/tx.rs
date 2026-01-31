@@ -1,9 +1,9 @@
+use crate::schema::{parse_tx_envelope_payload, TxEnvelopePayload};
 use crate::signed::{split_signed_map, with_signature};
 use crate::{
     decode_canonical, encode_canonical, sha256, sign_ed25519_hash, verify_ed25519_hash, CborValue,
     Error,
 };
-use crate::schema::{parse_tx_envelope_payload, TxEnvelopePayload};
 
 #[derive(Debug, Clone)]
 pub struct TxEnvelope {
@@ -45,7 +45,10 @@ pub fn verify_tx_envelope(data: &[u8], public_key: &[u8]) -> Result<TxEnvelopePa
 pub fn tx_envelope_payload_to_cbor(payload: &TxEnvelopePayload) -> CborValue {
     CborValue::Map(vec![
         (CborValue::Unsigned(0), CborValue::Unsigned(payload.tx_type)),
-        (CborValue::Unsigned(1), CborValue::Text(payload.sender.clone())),
+        (
+            CborValue::Unsigned(1),
+            CborValue::Text(payload.sender.clone()),
+        ),
         (CborValue::Unsigned(2), CborValue::Unsigned(payload.nonce)),
         (CborValue::Unsigned(3), CborValue::Unsigned(payload.fee)),
         (CborValue::Unsigned(4), payload.payload.clone()),

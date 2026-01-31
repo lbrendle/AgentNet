@@ -1,4 +1,3 @@
-use anyhow::{anyhow, Context, Result};
 use anetsdk::{
     decode_canonical, encode_canonical, parse_action_intent, parse_agentmail_message,
     parse_agentmail_payload, parse_approval_payload, parse_grant_payload, parse_nodehello_payload,
@@ -10,6 +9,7 @@ use anetsdk::{
     sign_ed25519_hash, verify_ed25519_hash, verify_skill_manifest, verify_work_agreement,
     verify_work_offer, CborValue,
 };
+use anyhow::{anyhow, Context, Result};
 use serde::Deserialize;
 use std::fs;
 
@@ -150,12 +150,18 @@ struct VectorEntry {
 }
 
 fn main() -> Result<()> {
-    let path = std::env::args().nth(1).ok_or_else(|| anyhow!("usage: anet-vectors <path-to-vectors.json>"))?;
+    let path = std::env::args()
+        .nth(1)
+        .ok_or_else(|| anyhow!("usage: anet-vectors <path-to-vectors.json>"))?;
     let data = fs::read_to_string(&path).with_context(|| format!("read {path}"))?;
     let vectors: VectorsFile = serde_json::from_str(&data).context("parse vectors json")?;
 
     let public_key = hex::decode(&vectors.ed25519_public_key_hex).context("decode public key")?;
-    let seed = vectors.ed25519_seed_hex.map(|hex| hex::decode(hex)).transpose().context("decode seed")?;
+    let seed = vectors
+        .ed25519_seed_hex
+        .map(|hex| hex::decode(hex))
+        .transpose()
+        .context("decode seed")?;
 
     let mut action_intent_hash: Option<Vec<u8>> = None;
 
@@ -166,23 +172,43 @@ fn main() -> Result<()> {
                 let expected_hash = decode_hex_required(entry.sha256_hex, "sha256_hex")?;
                 let expected_sig = decode_hex_required(entry.signature_hex, "signature_hex")?;
 
-                verify_hash_and_sig("TV1_ActionIntent", &public_key, &cbor, &expected_hash, &expected_sig)?;
+                verify_hash_and_sig(
+                    "TV1_ActionIntent",
+                    &public_key,
+                    &cbor,
+                    &expected_hash,
+                    &expected_sig,
+                )?;
                 action_intent_hash = Some(expected_hash);
                 ensure_roundtrip("TV1_ActionIntent", &cbor)?;
                 let parsed = decode_canonical(&cbor)?;
                 parse_action_intent(&parsed)?;
             }
             "TV2_Approval" => {
-                let payload = decode_hex_required(entry.approval_payload_cbor_hex, "approval_payload_cbor_hex")?;
-                let expected_hash = decode_hex_required(entry.approval_payload_sha256_hex, "approval_payload_sha256_hex")?;
-                let expected_sig = decode_hex_required(entry.approval_signature_hex, "approval_signature_hex")?;
+                let payload = decode_hex_required(
+                    entry.approval_payload_cbor_hex,
+                    "approval_payload_cbor_hex",
+                )?;
+                let expected_hash = decode_hex_required(
+                    entry.approval_payload_sha256_hex,
+                    "approval_payload_sha256_hex",
+                )?;
+                let expected_sig =
+                    decode_hex_required(entry.approval_signature_hex, "approval_signature_hex")?;
                 let intent_hash = decode_hex_required(entry.intent_hash_hex, "intent_hash_hex")?;
                 if let Some(full_hex) = entry.approval_full_object_cbor_hex {
-                    let full = hex::decode(&full_hex).context("decode approval_full_object_cbor_hex")?;
+                    let full =
+                        hex::decode(&full_hex).context("decode approval_full_object_cbor_hex")?;
                     ensure_roundtrip("TV2_Approval full object", &full)?;
                 }
 
-                verify_hash_and_sig("TV2_Approval", &public_key, &payload, &expected_hash, &expected_sig)?;
+                verify_hash_and_sig(
+                    "TV2_Approval",
+                    &public_key,
+                    &payload,
+                    &expected_hash,
+                    &expected_sig,
+                )?;
                 ensure_roundtrip("TV2_Approval", &payload)?;
                 let parsed = decode_canonical(&payload)?;
                 parse_approval_payload(&parsed)?;
@@ -194,25 +220,50 @@ fn main() -> Result<()> {
                 }
             }
             "TV3_Grant" => {
-                let payload = decode_hex_required(entry.grant_payload_cbor_hex, "grant_payload_cbor_hex")?;
-                let expected_hash = decode_hex_required(entry.grant_payload_sha256_hex, "grant_payload_sha256_hex")?;
-                let expected_sig = decode_hex_required(entry.grant_signature_hex, "grant_signature_hex")?;
+                let payload =
+                    decode_hex_required(entry.grant_payload_cbor_hex, "grant_payload_cbor_hex")?;
+                let expected_hash = decode_hex_required(
+                    entry.grant_payload_sha256_hex,
+                    "grant_payload_sha256_hex",
+                )?;
+                let expected_sig =
+                    decode_hex_required(entry.grant_signature_hex, "grant_signature_hex")?;
                 if let Some(full_hex) = entry.grant_full_object_cbor_hex {
-                    let full = hex::decode(&full_hex).context("decode grant_full_object_cbor_hex")?;
+                    let full =
+                        hex::decode(&full_hex).context("decode grant_full_object_cbor_hex")?;
                     ensure_roundtrip("TV3_Grant full object", &full)?;
                 }
 
-                verify_hash_and_sig("TV3_Grant", &public_key, &payload, &expected_hash, &expected_sig)?;
+                verify_hash_and_sig(
+                    "TV3_Grant",
+                    &public_key,
+                    &payload,
+                    &expected_hash,
+                    &expected_sig,
+                )?;
                 ensure_roundtrip("TV3_Grant", &payload)?;
                 let parsed = decode_canonical(&payload)?;
                 parse_grant_payload(&parsed)?;
             }
             "TV4_NodeHello" => {
-                let payload = decode_hex_required(entry.nodehello_payload_cbor_hex, "nodehello_payload_cbor_hex")?;
-                let expected_hash = decode_hex_required(entry.nodehello_payload_sha256_hex, "nodehello_payload_sha256_hex")?;
-                let expected_sig = decode_hex_required(entry.nodehello_signature_hex, "nodehello_signature_hex")?;
+                let payload = decode_hex_required(
+                    entry.nodehello_payload_cbor_hex,
+                    "nodehello_payload_cbor_hex",
+                )?;
+                let expected_hash = decode_hex_required(
+                    entry.nodehello_payload_sha256_hex,
+                    "nodehello_payload_sha256_hex",
+                )?;
+                let expected_sig =
+                    decode_hex_required(entry.nodehello_signature_hex, "nodehello_signature_hex")?;
 
-                verify_hash_and_sig("TV4_NodeHello", &public_key, &payload, &expected_hash, &expected_sig)?;
+                verify_hash_and_sig(
+                    "TV4_NodeHello",
+                    &public_key,
+                    &payload,
+                    &expected_hash,
+                    &expected_sig,
+                )?;
                 ensure_roundtrip("TV4_NodeHello", &payload)?;
                 let parsed = decode_canonical(&payload)?;
                 let node = parse_nodehello_payload(&parsed)?;
@@ -229,16 +280,37 @@ fn main() -> Result<()> {
                 }
             }
             "TV5_ReceiptChain" => {
-                let receipt1 = decode_hex_required(entry.receipt1_payload_cbor_hex, "receipt1_payload_cbor_hex")?;
-                let receipt1_hash = decode_hex_required(entry.receipt1_hash_hex, "receipt1_hash_hex")?;
+                let receipt1 = decode_hex_required(
+                    entry.receipt1_payload_cbor_hex,
+                    "receipt1_payload_cbor_hex",
+                )?;
+                let receipt1_hash =
+                    decode_hex_required(entry.receipt1_hash_hex, "receipt1_hash_hex")?;
                 let receipt1_sig = decode_hex_required(entry.receipt1_sig_hex, "receipt1_sig_hex")?;
-                let receipt2 = decode_hex_required(entry.receipt2_payload_cbor_hex, "receipt2_payload_cbor_hex")?;
-                let receipt2_hash = decode_hex_required(entry.receipt2_hash_hex, "receipt2_hash_hex")?;
+                let receipt2 = decode_hex_required(
+                    entry.receipt2_payload_cbor_hex,
+                    "receipt2_payload_cbor_hex",
+                )?;
+                let receipt2_hash =
+                    decode_hex_required(entry.receipt2_hash_hex, "receipt2_hash_hex")?;
                 let receipt2_sig = decode_hex_required(entry.receipt2_sig_hex, "receipt2_sig_hex")?;
-                let receipt2_prev = decode_hex_required(entry.receipt2_prev_hash_hex, "receipt2_prev_hash_hex")?;
+                let receipt2_prev =
+                    decode_hex_required(entry.receipt2_prev_hash_hex, "receipt2_prev_hash_hex")?;
 
-                verify_hash_and_sig("TV5_ReceiptChain receipt1", &public_key, &receipt1, &receipt1_hash, &receipt1_sig)?;
-                verify_hash_and_sig("TV5_ReceiptChain receipt2", &public_key, &receipt2, &receipt2_hash, &receipt2_sig)?;
+                verify_hash_and_sig(
+                    "TV5_ReceiptChain receipt1",
+                    &public_key,
+                    &receipt1,
+                    &receipt1_hash,
+                    &receipt1_sig,
+                )?;
+                verify_hash_and_sig(
+                    "TV5_ReceiptChain receipt2",
+                    &public_key,
+                    &receipt2,
+                    &receipt2_hash,
+                    &receipt2_sig,
+                )?;
 
                 if receipt2_prev != receipt1_hash {
                     return Err(anyhow!("TV5_ReceiptChain prev_hash mismatch"));
@@ -251,22 +323,52 @@ fn main() -> Result<()> {
                 parse_receipt_payload(&parsed2)?;
             }
             "TV6_EscrowLockTx" => {
-                let payload = decode_hex_required(entry.tx_envelope_payload_cbor_hex, "tx_envelope_payload_cbor_hex")?;
-                let expected_hash = decode_hex_required(entry.tx_envelope_payload_sha256_hex, "tx_envelope_payload_sha256_hex")?;
+                let payload = decode_hex_required(
+                    entry.tx_envelope_payload_cbor_hex,
+                    "tx_envelope_payload_cbor_hex",
+                )?;
+                let expected_hash = decode_hex_required(
+                    entry.tx_envelope_payload_sha256_hex,
+                    "tx_envelope_payload_sha256_hex",
+                )?;
                 let expected_sig = decode_hex_required(entry.tx_signature_hex, "tx_signature_hex")?;
 
-                verify_hash_and_sig("TV6_EscrowLockTx", &public_key, &payload, &expected_hash, &expected_sig)?;
+                verify_hash_and_sig(
+                    "TV6_EscrowLockTx",
+                    &public_key,
+                    &payload,
+                    &expected_hash,
+                    &expected_sig,
+                )?;
                 ensure_roundtrip("TV6_EscrowLockTx", &payload)?;
                 let parsed = decode_canonical(&payload)?;
                 parse_tx_envelope_payload(&parsed)?;
             }
             "TV7_KillSwitch" => {
-                let payload = decode_hex_required(entry.kill_switch_payload_cbor_hex, "kill_switch_payload_cbor_hex")?;
-                let expected_hash = decode_hex_required(entry.kill_switch_payload_sha256_hex, "kill_switch_payload_sha256_hex")?;
-                let expected_sig = decode_hex_required(entry.kill_switch_signature_hex, "kill_switch_signature_hex")?;
-                let full = decode_hex_required(entry.kill_switch_full_object_cbor_hex, "kill_switch_full_object_cbor_hex")?;
+                let payload = decode_hex_required(
+                    entry.kill_switch_payload_cbor_hex,
+                    "kill_switch_payload_cbor_hex",
+                )?;
+                let expected_hash = decode_hex_required(
+                    entry.kill_switch_payload_sha256_hex,
+                    "kill_switch_payload_sha256_hex",
+                )?;
+                let expected_sig = decode_hex_required(
+                    entry.kill_switch_signature_hex,
+                    "kill_switch_signature_hex",
+                )?;
+                let full = decode_hex_required(
+                    entry.kill_switch_full_object_cbor_hex,
+                    "kill_switch_full_object_cbor_hex",
+                )?;
 
-                verify_hash_and_sig("TV7_KillSwitch", &public_key, &payload, &expected_hash, &expected_sig)?;
+                verify_hash_and_sig(
+                    "TV7_KillSwitch",
+                    &public_key,
+                    &payload,
+                    &expected_hash,
+                    &expected_sig,
+                )?;
                 ensure_roundtrip("TV7_KillSwitch payload", &payload)?;
                 ensure_roundtrip("TV7_KillSwitch full object", &full)?;
 
@@ -302,47 +404,92 @@ fn main() -> Result<()> {
                 let payload = decode_hex_required(entry.object_cbor_hex, "object_cbor_hex")?;
                 let expected_hash = decode_hex_required(entry.sha256_hex, "sha256_hex")?;
                 let expected_sig = decode_hex_required(entry.signature_hex, "signature_hex")?;
-                verify_hash_and_sig("TV8_SkillManifest", &public_key, &payload, &expected_hash, &expected_sig)?;
+                verify_hash_and_sig(
+                    "TV8_SkillManifest",
+                    &public_key,
+                    &payload,
+                    &expected_hash,
+                    &expected_sig,
+                )?;
                 ensure_roundtrip("TV8_SkillManifest", &payload)?;
                 let parsed = decode_canonical(&payload)?;
                 parse_skill_manifest_payload(&parsed)?;
                 if let Some(full_hex) = entry.skill_manifest_full_object_cbor_hex {
-                    let full = hex::decode(&full_hex).context("decode skill_manifest_full_object_cbor_hex")?;
+                    let full = hex::decode(&full_hex)
+                        .context("decode skill_manifest_full_object_cbor_hex")?;
                     ensure_roundtrip("TV8_SkillManifest full object", &full)?;
                     verify_skill_manifest(&full, &public_key)?;
                 }
             }
             "TV9_WorkOffer" => {
-                let payload = decode_hex_required(entry.work_offer_payload_cbor_hex, "work_offer_payload_cbor_hex")?;
-                let expected_hash = decode_hex_required(entry.work_offer_payload_sha256_hex, "work_offer_payload_sha256_hex")?;
-                let expected_sig = decode_hex_required(entry.work_offer_signature_hex, "work_offer_signature_hex")?;
-                verify_hash_and_sig("TV9_WorkOffer", &public_key, &payload, &expected_hash, &expected_sig)?;
+                let payload = decode_hex_required(
+                    entry.work_offer_payload_cbor_hex,
+                    "work_offer_payload_cbor_hex",
+                )?;
+                let expected_hash = decode_hex_required(
+                    entry.work_offer_payload_sha256_hex,
+                    "work_offer_payload_sha256_hex",
+                )?;
+                let expected_sig = decode_hex_required(
+                    entry.work_offer_signature_hex,
+                    "work_offer_signature_hex",
+                )?;
+                verify_hash_and_sig(
+                    "TV9_WorkOffer",
+                    &public_key,
+                    &payload,
+                    &expected_hash,
+                    &expected_sig,
+                )?;
                 ensure_roundtrip("TV9_WorkOffer", &payload)?;
                 let parsed = decode_canonical(&payload)?;
                 parse_work_offer_payload(&parsed)?;
                 if let Some(full_hex) = entry.work_offer_full_object_cbor_hex {
-                    let full = hex::decode(&full_hex).context("decode work_offer_full_object_cbor_hex")?;
+                    let full =
+                        hex::decode(&full_hex).context("decode work_offer_full_object_cbor_hex")?;
                     ensure_roundtrip("TV9_WorkOffer full object", &full)?;
                     verify_work_offer(&full, &public_key)?;
                 }
             }
             "TV10_WorkAgreement" => {
-                let payload = decode_hex_required(entry.work_agreement_payload_cbor_hex, "work_agreement_payload_cbor_hex")?;
-                let expected_hash = decode_hex_required(entry.work_agreement_payload_sha256_hex, "work_agreement_payload_sha256_hex")?;
-                let expected_sig = decode_hex_required(entry.work_agreement_signature_hex, "work_agreement_signature_hex")?;
-                verify_hash_and_sig("TV10_WorkAgreement", &public_key, &payload, &expected_hash, &expected_sig)?;
+                let payload = decode_hex_required(
+                    entry.work_agreement_payload_cbor_hex,
+                    "work_agreement_payload_cbor_hex",
+                )?;
+                let expected_hash = decode_hex_required(
+                    entry.work_agreement_payload_sha256_hex,
+                    "work_agreement_payload_sha256_hex",
+                )?;
+                let expected_sig = decode_hex_required(
+                    entry.work_agreement_signature_hex,
+                    "work_agreement_signature_hex",
+                )?;
+                verify_hash_and_sig(
+                    "TV10_WorkAgreement",
+                    &public_key,
+                    &payload,
+                    &expected_hash,
+                    &expected_sig,
+                )?;
                 ensure_roundtrip("TV10_WorkAgreement", &payload)?;
                 let parsed = decode_canonical(&payload)?;
                 parse_work_agreement_payload(&parsed)?;
                 if let Some(full_hex) = entry.work_agreement_full_object_cbor_hex {
-                    let full = hex::decode(&full_hex).context("decode work_agreement_full_object_cbor_hex")?;
+                    let full = hex::decode(&full_hex)
+                        .context("decode work_agreement_full_object_cbor_hex")?;
                     ensure_roundtrip("TV10_WorkAgreement full object", &full)?;
                     verify_work_agreement(&full, &public_key)?;
                 }
             }
             "TV11_SkillPublishPayload" => {
-                let payload = decode_hex_required(entry.skill_publish_payload_cbor_hex, "skill_publish_payload_cbor_hex")?;
-                let expected_hash = decode_hex_required(entry.skill_publish_payload_sha256_hex, "skill_publish_payload_sha256_hex")?;
+                let payload = decode_hex_required(
+                    entry.skill_publish_payload_cbor_hex,
+                    "skill_publish_payload_cbor_hex",
+                )?;
+                let expected_hash = decode_hex_required(
+                    entry.skill_publish_payload_sha256_hex,
+                    "skill_publish_payload_sha256_hex",
+                )?;
                 let digest = sha256(&payload);
                 if digest.as_slice() != expected_hash {
                     return Err(anyhow!("TV11_SkillPublishPayload hash mismatch"));
@@ -352,8 +499,14 @@ fn main() -> Result<()> {
                 parse_skill_publish_payload(&parsed)?;
             }
             "TV12_SkillUpdatePayload" => {
-                let payload = decode_hex_required(entry.skill_update_payload_cbor_hex, "skill_update_payload_cbor_hex")?;
-                let expected_hash = decode_hex_required(entry.skill_update_payload_sha256_hex, "skill_update_payload_sha256_hex")?;
+                let payload = decode_hex_required(
+                    entry.skill_update_payload_cbor_hex,
+                    "skill_update_payload_cbor_hex",
+                )?;
+                let expected_hash = decode_hex_required(
+                    entry.skill_update_payload_sha256_hex,
+                    "skill_update_payload_sha256_hex",
+                )?;
                 let digest = sha256(&payload);
                 if digest.as_slice() != expected_hash {
                     return Err(anyhow!("TV12_SkillUpdatePayload hash mismatch"));
@@ -363,8 +516,14 @@ fn main() -> Result<()> {
                 parse_skill_update_payload(&parsed)?;
             }
             "TV13_SkillRevokePayload" => {
-                let payload = decode_hex_required(entry.skill_revoke_payload_cbor_hex, "skill_revoke_payload_cbor_hex")?;
-                let expected_hash = decode_hex_required(entry.skill_revoke_payload_sha256_hex, "skill_revoke_payload_sha256_hex")?;
+                let payload = decode_hex_required(
+                    entry.skill_revoke_payload_cbor_hex,
+                    "skill_revoke_payload_cbor_hex",
+                )?;
+                let expected_hash = decode_hex_required(
+                    entry.skill_revoke_payload_sha256_hex,
+                    "skill_revoke_payload_sha256_hex",
+                )?;
                 let digest = sha256(&payload);
                 if digest.as_slice() != expected_hash {
                     return Err(anyhow!("TV13_SkillRevokePayload hash mismatch"));
@@ -374,8 +533,14 @@ fn main() -> Result<()> {
                 parse_skill_revoke_payload(&parsed)?;
             }
             "TV14_WorkOfferPublishPayload" => {
-                let payload = decode_hex_required(entry.work_offer_publish_payload_cbor_hex, "work_offer_publish_payload_cbor_hex")?;
-                let expected_hash = decode_hex_required(entry.work_offer_publish_payload_sha256_hex, "work_offer_publish_payload_sha256_hex")?;
+                let payload = decode_hex_required(
+                    entry.work_offer_publish_payload_cbor_hex,
+                    "work_offer_publish_payload_cbor_hex",
+                )?;
+                let expected_hash = decode_hex_required(
+                    entry.work_offer_publish_payload_sha256_hex,
+                    "work_offer_publish_payload_sha256_hex",
+                )?;
                 let digest = sha256(&payload);
                 if digest.as_slice() != expected_hash {
                     return Err(anyhow!("TV14_WorkOfferPublishPayload hash mismatch"));
@@ -385,8 +550,14 @@ fn main() -> Result<()> {
                 parse_work_offer_publish_payload(&parsed)?;
             }
             "TV15_WorkAgreementPublishPayload" => {
-                let payload = decode_hex_required(entry.work_agreement_publish_payload_cbor_hex, "work_agreement_publish_payload_cbor_hex")?;
-                let expected_hash = decode_hex_required(entry.work_agreement_publish_payload_sha256_hex, "work_agreement_publish_payload_sha256_hex")?;
+                let payload = decode_hex_required(
+                    entry.work_agreement_publish_payload_cbor_hex,
+                    "work_agreement_publish_payload_cbor_hex",
+                )?;
+                let expected_hash = decode_hex_required(
+                    entry.work_agreement_publish_payload_sha256_hex,
+                    "work_agreement_publish_payload_sha256_hex",
+                )?;
                 let digest = sha256(&payload);
                 if digest.as_slice() != expected_hash {
                     return Err(anyhow!("TV15_WorkAgreementPublishPayload hash mismatch"));
@@ -396,8 +567,14 @@ fn main() -> Result<()> {
                 parse_work_agreement_publish_payload(&parsed)?;
             }
             "TV16_WorkAgreementUpdatePayload" => {
-                let payload = decode_hex_required(entry.work_agreement_update_payload_cbor_hex, "work_agreement_update_payload_cbor_hex")?;
-                let expected_hash = decode_hex_required(entry.work_agreement_update_payload_sha256_hex, "work_agreement_update_payload_sha256_hex")?;
+                let payload = decode_hex_required(
+                    entry.work_agreement_update_payload_cbor_hex,
+                    "work_agreement_update_payload_cbor_hex",
+                )?;
+                let expected_hash = decode_hex_required(
+                    entry.work_agreement_update_payload_sha256_hex,
+                    "work_agreement_update_payload_sha256_hex",
+                )?;
                 let digest = sha256(&payload);
                 if digest.as_slice() != expected_hash {
                     return Err(anyhow!("TV16_WorkAgreementUpdatePayload hash mismatch"));
@@ -407,8 +584,14 @@ fn main() -> Result<()> {
                 parse_work_agreement_update_payload(&parsed)?;
             }
             "TV17_WorkAgreementClosePayload" => {
-                let payload = decode_hex_required(entry.work_agreement_close_payload_cbor_hex, "work_agreement_close_payload_cbor_hex")?;
-                let expected_hash = decode_hex_required(entry.work_agreement_close_payload_sha256_hex, "work_agreement_close_payload_sha256_hex")?;
+                let payload = decode_hex_required(
+                    entry.work_agreement_close_payload_cbor_hex,
+                    "work_agreement_close_payload_cbor_hex",
+                )?;
+                let expected_hash = decode_hex_required(
+                    entry.work_agreement_close_payload_sha256_hex,
+                    "work_agreement_close_payload_sha256_hex",
+                )?;
                 let digest = sha256(&payload);
                 if digest.as_slice() != expected_hash {
                     return Err(anyhow!("TV17_WorkAgreementClosePayload hash mismatch"));
@@ -418,9 +601,16 @@ fn main() -> Result<()> {
                 parse_work_agreement_close_payload(&parsed)?;
             }
             "TV18_AgentMailMessage" => {
-                let payload = decode_hex_required(entry.agentmail_payload_cbor_hex, "agentmail_payload_cbor_hex")?;
-                let expected_hash = decode_hex_required(entry.agentmail_payload_sha256_hex, "agentmail_payload_sha256_hex")?;
-                let expected_sig = decode_hex_required(entry.agentmail_signature_hex, "agentmail_signature_hex")?;
+                let payload = decode_hex_required(
+                    entry.agentmail_payload_cbor_hex,
+                    "agentmail_payload_cbor_hex",
+                )?;
+                let expected_hash = decode_hex_required(
+                    entry.agentmail_payload_sha256_hex,
+                    "agentmail_payload_sha256_hex",
+                )?;
+                let expected_sig =
+                    decode_hex_required(entry.agentmail_signature_hex, "agentmail_signature_hex")?;
                 let digest = sha256(&payload);
                 if digest.as_slice() != expected_hash {
                     return Err(anyhow!("TV18_AgentMailMessage hash mismatch"));
@@ -432,7 +622,8 @@ fn main() -> Result<()> {
                 parse_agentmail_payload(&parsed)?;
 
                 if let Some(full_hex) = entry.agentmail_full_object_cbor_hex.clone() {
-                    let full = hex::decode(&full_hex).context("decode agentmail_full_object_cbor_hex")?;
+                    let full =
+                        hex::decode(&full_hex).context("decode agentmail_full_object_cbor_hex")?;
                     ensure_roundtrip("TV18_AgentMailMessage full object", &full)?;
                     let message = parse_agentmail_message(&decode_canonical(&full)?)?;
                     if message.signature != expected_sig {
@@ -455,12 +646,19 @@ fn decode_hex_required(value: Option<String>, field: &str) -> Result<Vec<u8>> {
     hex::decode(&hex_str).with_context(|| format!("decode {field}"))
 }
 
-fn verify_hash_and_sig(label: &str, public_key: &[u8], cbor: &[u8], expected_hash: &[u8], signature: &[u8]) -> Result<()> {
+fn verify_hash_and_sig(
+    label: &str,
+    public_key: &[u8],
+    cbor: &[u8],
+    expected_hash: &[u8],
+    signature: &[u8],
+) -> Result<()> {
     let hash = sha256(cbor);
     if hash.as_slice() != expected_hash {
         return Err(anyhow!("{label} hash mismatch"));
     }
-    verify_ed25519_hash(public_key, &hash, signature).with_context(|| format!("{label} signature verify"))?;
+    verify_ed25519_hash(public_key, &hash, signature)
+        .with_context(|| format!("{label} signature verify"))?;
     Ok(())
 }
 
@@ -537,7 +735,11 @@ fn parse_kill_switch_map(value: &CborValue) -> Result<KillSwitchParts> {
     })
 }
 
-fn ensure_kill_switch_parts(label: &str, parts: &KillSwitchParts, require_signature: bool) -> Result<()> {
+fn ensure_kill_switch_parts(
+    label: &str,
+    parts: &KillSwitchParts,
+    require_signature: bool,
+) -> Result<()> {
     if parts.action > 1 {
         return Err(anyhow!("{label} invalid action"));
     }
@@ -556,9 +758,18 @@ fn ensure_kill_switch_parts(label: &str, parts: &KillSwitchParts, require_signat
 
 fn kill_switch_payload_map(parts: &KillSwitchParts) -> CborValue {
     CborValue::Map(vec![
-        (CborValue::Unsigned(0), CborValue::Unsigned(parts.action as u64)),
-        (CborValue::Unsigned(1), CborValue::Text(parts.reason.clone())),
+        (
+            CborValue::Unsigned(0),
+            CborValue::Unsigned(parts.action as u64),
+        ),
+        (
+            CborValue::Unsigned(1),
+            CborValue::Text(parts.reason.clone()),
+        ),
         (CborValue::Unsigned(2), CborValue::Unsigned(parts.ts)),
-        (CborValue::Unsigned(3), CborValue::Bytes(parts.nonce.clone())),
+        (
+            CborValue::Unsigned(3),
+            CborValue::Bytes(parts.nonce.clone()),
+        ),
     ])
 }

@@ -1,11 +1,11 @@
+use crate::schema::{
+    expect_bytes, expect_bytes_len, expect_map, expect_text, expect_text_array, expect_u64,
+    get_optional, get_required,
+};
 use crate::signed::{split_signed_map, with_signature};
 use crate::{
     decode_canonical, encode_canonical, sha256, sign_ed25519_hash, verify_ed25519_hash, CborValue,
     Error,
-};
-use crate::schema::{
-    expect_bytes, expect_bytes_len, expect_map, expect_text, expect_text_array, expect_u64,
-    get_optional, get_required,
 };
 
 const WORK_SIG_KEY: u64 = 16;
@@ -183,7 +183,10 @@ pub fn decode_work_agreement(data: &[u8]) -> Result<WorkAgreement, Error> {
     parse_work_agreement(&value)
 }
 
-pub fn build_work_agreement(payload: &WorkAgreementPayload, secret_key: &[u8]) -> Result<Vec<u8>, Error> {
+pub fn build_work_agreement(
+    payload: &WorkAgreementPayload,
+    secret_key: &[u8],
+) -> Result<Vec<u8>, Error> {
     payload.validate()?;
     let payload_value = payload.to_cbor()?;
     let payload_cbor = encode_canonical(&payload_value)?;
@@ -193,7 +196,10 @@ pub fn build_work_agreement(payload: &WorkAgreementPayload, secret_key: &[u8]) -
     encode_canonical(&full)
 }
 
-pub fn verify_work_agreement(data: &[u8], public_key: &[u8]) -> Result<WorkAgreementPayload, Error> {
+pub fn verify_work_agreement(
+    data: &[u8],
+    public_key: &[u8],
+) -> Result<WorkAgreementPayload, Error> {
     let value = decode_canonical(data)?;
     let (payload_entries, signature) = split_signed_map(&value, WORK_SIG_KEY)?;
     let payload_value = CborValue::Map(payload_entries);
@@ -210,8 +216,14 @@ impl WorkMilestone {
         ensure_positive(self.due_ts, "milestone due_ts required")?;
         ensure_positive(self.amount, "milestone amount required")?;
         let mut entries = Vec::new();
-        entries.push((CborValue::Unsigned(0), CborValue::Text(self.milestone_id.clone())));
-        entries.push((CborValue::Unsigned(1), CborValue::Text(self.description.clone())));
+        entries.push((
+            CborValue::Unsigned(0),
+            CborValue::Text(self.milestone_id.clone()),
+        ));
+        entries.push((
+            CborValue::Unsigned(1),
+            CborValue::Text(self.description.clone()),
+        ));
         entries.push((CborValue::Unsigned(2), CborValue::Unsigned(self.due_ts)));
         entries.push((CborValue::Unsigned(3), CborValue::Unsigned(self.amount)));
         if let Some(hash) = &self.deliverable_hash {
@@ -228,17 +240,37 @@ impl WorkOfferPayload {
     pub fn to_cbor(&self) -> Result<CborValue, Error> {
         self.validate()?;
         let mut entries = Vec::new();
-        entries.push((CborValue::Unsigned(0), CborValue::Text(self.offer_id.clone())));
+        entries.push((
+            CborValue::Unsigned(0),
+            CborValue::Text(self.offer_id.clone()),
+        ));
         entries.push((CborValue::Unsigned(1), CborValue::Text(self.issuer.clone())));
         entries.push((CborValue::Unsigned(2), CborValue::Text(self.title.clone())));
-        entries.push((CborValue::Unsigned(3), CborValue::Text(self.summary.clone())));
+        entries.push((
+            CborValue::Unsigned(3),
+            CborValue::Text(self.summary.clone()),
+        ));
         entries.push((CborValue::Unsigned(4), CborValue::Text(self.scope.clone())));
-        entries.push((CborValue::Unsigned(5), CborValue::Unsigned(self.budget_amount)));
-        entries.push((CborValue::Unsigned(6), CborValue::Text(self.budget_currency.clone())));
-        entries.push((CborValue::Unsigned(7), CborValue::Unsigned(self.duration_sec)));
+        entries.push((
+            CborValue::Unsigned(5),
+            CborValue::Unsigned(self.budget_amount),
+        ));
+        entries.push((
+            CborValue::Unsigned(6),
+            CborValue::Text(self.budget_currency.clone()),
+        ));
+        entries.push((
+            CborValue::Unsigned(7),
+            CborValue::Unsigned(self.duration_sec),
+        ));
         entries.push((
             CborValue::Unsigned(8),
-            CborValue::Array(self.deliverables.iter().map(|s| CborValue::Text(s.clone())).collect()),
+            CborValue::Array(
+                self.deliverables
+                    .iter()
+                    .map(|s| CborValue::Text(s.clone()))
+                    .collect(),
+            ),
         ));
         if let Some(reqs) = &self.requirements {
             entries.push((
@@ -276,17 +308,37 @@ impl WorkAgreementPayload {
     pub fn to_cbor(&self) -> Result<CborValue, Error> {
         self.validate()?;
         let mut entries = Vec::new();
-        entries.push((CborValue::Unsigned(0), CborValue::Text(self.agreement_id.clone())));
-        entries.push((CborValue::Unsigned(1), CborValue::Text(self.offer_id.clone())));
+        entries.push((
+            CborValue::Unsigned(0),
+            CborValue::Text(self.agreement_id.clone()),
+        ));
+        entries.push((
+            CborValue::Unsigned(1),
+            CborValue::Text(self.offer_id.clone()),
+        ));
         entries.push((CborValue::Unsigned(2), CborValue::Text(self.issuer.clone())));
-        entries.push((CborValue::Unsigned(3), CborValue::Text(self.counterparty.clone())));
-        entries.push((CborValue::Unsigned(4), CborValue::Unsigned(self.budget_amount)));
-        entries.push((CborValue::Unsigned(5), CborValue::Text(self.budget_currency.clone())));
+        entries.push((
+            CborValue::Unsigned(3),
+            CborValue::Text(self.counterparty.clone()),
+        ));
+        entries.push((
+            CborValue::Unsigned(4),
+            CborValue::Unsigned(self.budget_amount),
+        ));
+        entries.push((
+            CborValue::Unsigned(5),
+            CborValue::Text(self.budget_currency.clone()),
+        ));
         entries.push((CborValue::Unsigned(6), CborValue::Unsigned(self.start_ts)));
         entries.push((CborValue::Unsigned(7), CborValue::Unsigned(self.end_ts)));
         entries.push((
             CborValue::Unsigned(8),
-            CborValue::Array(self.deliverables.iter().map(|s| CborValue::Text(s.clone())).collect()),
+            CborValue::Array(
+                self.deliverables
+                    .iter()
+                    .map(|s| CborValue::Text(s.clone()))
+                    .collect(),
+            ),
         ));
         if let Some(milestones) = &self.milestones {
             let mut items = Vec::with_capacity(milestones.len());
@@ -429,7 +481,9 @@ pub struct WorkAgreementClosePayload {
     pub ts: u64,
 }
 
-pub fn parse_work_offer_publish_payload(value: &CborValue) -> Result<WorkOfferPublishPayload, Error> {
+pub fn parse_work_offer_publish_payload(
+    value: &CborValue,
+) -> Result<WorkOfferPublishPayload, Error> {
     let map = expect_map(value)?;
     let offer = expect_bytes(get_required(&map, 0)?)?;
     let ts = expect_u64(get_required(&map, 1)?)?;
@@ -503,7 +557,10 @@ pub fn work_offer_publish_payload_to_cbor(
     }
     decode_work_offer(&payload.offer)?;
     Ok(CborValue::Map(vec![
-        (CborValue::Unsigned(0), CborValue::Bytes(payload.offer.clone())),
+        (
+            CborValue::Unsigned(0),
+            CborValue::Bytes(payload.offer.clone()),
+        ),
         (CborValue::Unsigned(1), CborValue::Unsigned(payload.ts)),
     ]))
 }
@@ -516,7 +573,10 @@ pub fn work_agreement_publish_payload_to_cbor(
     }
     decode_work_agreement(&payload.agreement)?;
     Ok(CborValue::Map(vec![
-        (CborValue::Unsigned(0), CborValue::Bytes(payload.agreement.clone())),
+        (
+            CborValue::Unsigned(0),
+            CborValue::Bytes(payload.agreement.clone()),
+        ),
         (CborValue::Unsigned(1), CborValue::Unsigned(payload.ts)),
     ]))
 }
@@ -543,7 +603,10 @@ pub fn work_agreement_update_payload_to_cbor(
             CborValue::Unsigned(1),
             CborValue::Bytes(payload.prev_agreement_hash.clone()),
         ),
-        (CborValue::Unsigned(2), CborValue::Bytes(payload.agreement.clone())),
+        (
+            CborValue::Unsigned(2),
+            CborValue::Bytes(payload.agreement.clone()),
+        ),
         (CborValue::Unsigned(3), CborValue::Unsigned(payload.ts)),
     ]))
 }
@@ -572,7 +635,10 @@ pub fn work_agreement_close_payload_to_cbor(
             CborValue::Unsigned(1),
             CborValue::Bytes(payload.agreement_hash.clone()),
         ),
-        (CborValue::Unsigned(2), CborValue::Text(payload.reason.clone())),
+        (
+            CborValue::Unsigned(2),
+            CborValue::Text(payload.reason.clone()),
+        ),
         (CborValue::Unsigned(3), CborValue::Unsigned(payload.ts)),
     ]))
 }

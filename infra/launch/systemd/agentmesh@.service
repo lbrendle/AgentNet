@@ -1,0 +1,21 @@
+[Unit]
+Description=AgentNet Mesh Node (%i)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=agentnet
+Group=agentnet
+ExecStart=/usr/local/bin/agentmesh run --config /etc/agentnet/agentmesh/%i/agentmesh.toml
+Restart=on-failure
+RestartSec=3
+LimitNOFILE=1048576
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/agentnet /var/log/agentnet
+
+[Install]
+WantedBy=multi-user.target

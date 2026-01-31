@@ -32,6 +32,10 @@ pub struct SkillRegistryRecord {
     pub manifest_hash_hex: String,
     pub manifest_hex: String,
     pub revoked: bool,
+    pub revoked_at: Option<u64>,
+    pub revocation_reason: Option<String>,
+    pub published_at: u64,
+    pub updated_at: u64,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -46,6 +50,7 @@ pub struct WorkOfferRegistryRecord {
     pub issuer: String,
     pub offer_hash_hex: String,
     pub offer_hex: String,
+    pub published_at: u64,
 }
 
 #[derive(Debug, Clone)]
@@ -55,6 +60,10 @@ pub struct WorkAgreementRegistryRecord {
     pub agreement_hash_hex: String,
     pub agreement_hex: String,
     pub closed: bool,
+    pub closed_at: Option<u64>,
+    pub close_reason: Option<String>,
+    pub published_at: u64,
+    pub updated_at: u64,
 }
 
 pub struct IndexState {
@@ -94,29 +103,46 @@ impl IndexState {
 
     pub async fn set_identity_state(&self, state: IdentityState) -> Result<()> {
         {
-            let mut guard = self.identity.write().await;
-            *guard = state.clone();
+            let mut db = self.db.lock().await;
+            db.replace_identity_state(&state)?;
         }
-        let mut db = self.db.lock().await;
-        db.replace_identity_state(&state)
+        let mut guard = self.identity.write().await;
+        *guard = state;
+        Ok(())
     }
 
     pub async fn set_skill_registry_state(&self, state: SkillRegistryState) -> Result<()> {
+        let identity = {
+            let guard = self.identity.read().await;
+            if guard.records.is_empty() {
+                return Err(anyhow!("identity state not loaded"));
+            }
+            guard.clone()
+        };
         {
-            let mut guard = self.skill_registry.write().await;
-            *guard = state.clone();
+            let mut db = self.db.lock().await;
+            db.replace_skill_registry_state(&state, &identity)?;
         }
-        let mut db = self.db.lock().await;
-        db.replace_skill_registry_state(&state)
+        let mut guard = self.skill_registry.write().await;
+        *guard = state;
+        Ok(())
     }
 
     pub async fn set_work_registry_state(&self, state: WorkRegistryState) -> Result<()> {
+        let identity = {
+            let guard = self.identity.read().await;
+            if guard.records.is_empty() {
+                return Err(anyhow!("identity state not loaded"));
+            }
+            guard.clone()
+        };
         {
-            let mut guard = self.work_registry.write().await;
-            *guard = state.clone();
+            let mut db = self.db.lock().await;
+            db.replace_work_registry_state(&state, &identity)?;
         }
-        let mut db = self.db.lock().await;
-        db.replace_work_registry_state(&state)
+        let mut guard = self.work_registry.write().await;
+        *guard = state;
+        Ok(())
     }
 
     pub async fn skill_registry_record(&self, skill_id: &str) -> Option<SkillRegistryRecord> {
@@ -124,7 +150,10 @@ impl IndexState {
         guard.records.get(skill_id).cloned()
     }
 
-    pub async fn work_offer_registry_record(&self, offer_id: &str) -> Option<WorkOfferRegistryRecord> {
+    pub async fn work_offer_registry_record(
+        &self,
+        offer_id: &str,
+    ) -> Option<WorkOfferRegistryRecord> {
         let guard = self.work_registry.read().await;
         guard.offers.get(offer_id).cloned()
     }

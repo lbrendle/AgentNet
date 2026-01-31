@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: agentmesh-mainnet
+    runtime: docker
+    dockerfilePath: infra/launch/render/Dockerfile.agentmesh
+    autoDeploy: false
+    numInstances: 1
+  - type: web
+    name: agentindex-mainnet
+    runtime: docker
+    dockerfilePath: infra/launch/render/Dockerfile.agentindex
+    autoDeploy: false
+    numInstances: 1

@@ -1,0 +1,7 @@
+/Users/ritzai/ritzdesk/projects/agentnet/impl/rust/target/debug/deps/nohash_hasher-83b5ccaff49feb9e.d: /Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/nohash-hasher-0.2.0/src/lib.rs
+
+/Users/ritzai/ritzdesk/projects/agentnet/impl/rust/target/debug/deps/libnohash_hasher-83b5ccaff49feb9e.rlib: /Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/nohash-hasher-0.2.0/src/lib.rs
+
+/Users/ritzai/ritzdesk/projects/agentnet/impl/rust/target/debug/deps/libnohash_hasher-83b5ccaff49feb9e.rmeta: /Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/nohash-hasher-0.2.0/src/lib.rs
+
+/Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/nohash-hasher-0.2.0/src/lib.rs:

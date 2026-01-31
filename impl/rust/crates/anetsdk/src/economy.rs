@@ -43,20 +43,35 @@ pub fn parse_postage_payload(value: &CborValue) -> Result<PostagePayload, Error>
 
 pub fn transfer_payload_to_cbor(payload: &TransferPayload) -> CborValue {
     CborValue::Map(vec![
-        (CborValue::Unsigned(0), CborValue::Text(payload.from.clone())),
+        (
+            CborValue::Unsigned(0),
+            CborValue::Text(payload.from.clone()),
+        ),
         (CborValue::Unsigned(1), CborValue::Text(payload.to.clone())),
         (CborValue::Unsigned(2), CborValue::Unsigned(payload.amount)),
-        (CborValue::Unsigned(3), CborValue::Text(payload.currency.clone())),
+        (
+            CborValue::Unsigned(3),
+            CborValue::Text(payload.currency.clone()),
+        ),
         (CborValue::Unsigned(4), CborValue::Unsigned(payload.ts)),
     ])
 }
 
 pub fn postage_payload_to_cbor(payload: &PostagePayload) -> CborValue {
     CborValue::Map(vec![
-        (CborValue::Unsigned(0), CborValue::Text(payload.payer.clone())),
+        (
+            CborValue::Unsigned(0),
+            CborValue::Text(payload.payer.clone()),
+        ),
         (CborValue::Unsigned(1), CborValue::Unsigned(payload.amount)),
-        (CborValue::Unsigned(2), CborValue::Text(payload.currency.clone())),
-        (CborValue::Unsigned(3), CborValue::Text(payload.purpose.clone())),
+        (
+            CborValue::Unsigned(2),
+            CborValue::Text(payload.currency.clone()),
+        ),
+        (
+            CborValue::Unsigned(3),
+            CborValue::Text(payload.purpose.clone()),
+        ),
         (CborValue::Unsigned(4), CborValue::Unsigned(payload.ts)),
     ])
 }

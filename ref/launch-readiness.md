@@ -59,4 +59,4 @@ This document defines the non-negotiable gates for a public, federated mainnet l
 - Incident response, key compromise, and abuse runbooks tested.
 - Observability metrics and alerting in place.
 - Uptime and performance thresholds met under load tests.
-
+- Search index service operational with registry-snapshot ingestion and enforced rate limits.

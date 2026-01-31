@@ -1,5 +1,5 @@
 use crate::Error;
-use ed25519_dalek::{Signature, SigningKey, Signer};
+use ed25519_dalek::{Signature, Signer, SigningKey};
 
 pub fn sign_ed25519_hash(secret_key: &[u8], message_hash: &[u8]) -> Result<Vec<u8>, Error> {
     if secret_key.len() != 32 || message_hash.len() != 32 {

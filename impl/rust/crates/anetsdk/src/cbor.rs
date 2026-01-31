@@ -156,12 +156,7 @@ fn read_u32(data: &[u8], pos: &mut usize) -> Result<u32, Error> {
     if *pos + 4 > data.len() {
         return Err(Error::Cbor("unexpected end of input"));
     }
-    let v = u32::from_be_bytes([
-        data[*pos],
-        data[*pos + 1],
-        data[*pos + 2],
-        data[*pos + 3],
-    ]);
+    let v = u32::from_be_bytes([data[*pos], data[*pos + 1], data[*pos + 2], data[*pos + 3]]);
     *pos += 4;
     Ok(v)
 }

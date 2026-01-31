@@ -47,6 +47,7 @@ This index defines the documentation set, its scope, and the expected operationa
 - `ref/guides/security-guide.md`
 - `ref/guides/search-index-guide.md`
 - `ref/guides/app-distribution-guide.md`
+- `ref/guides/launch-guide.md`
 
 ---
 

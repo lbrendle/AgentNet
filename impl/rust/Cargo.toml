@@ -4,6 +4,7 @@ members = [
   "crates/anetsdk",
   "crates/anet-vectors",
   "crates/agentmesh",
+  "crates/agentindex",
   "crates/anet-econ-verify",
 ]
 

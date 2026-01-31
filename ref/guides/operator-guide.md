@@ -23,6 +23,7 @@ This guide defines how to operate AgentNet nodes and services in production.
 - Verify NodeHello negotiation on all inbound connections.
 - Reject invalid DHT records and invalid signatures.
 - Enforce pubsub postage rules for cold contact.
+- Configure transports explicitly (QUIC for UDP-capable hosts; WebSocket for HTTP-only ingress).
 - Configure an economic proof validator for postage and escrow receipts.
 - Run the economic proof verifier as an isolated service with strict failure handling.
 - Keep economic proof validation fail-closed unless explicitly approved.

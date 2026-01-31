@@ -1,0 +1,22 @@
+[Unit]
+Description=AgentNet Search Index
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=agentnet
+Group=agentnet
+EnvironmentFile=/etc/agentnet/agentindex.env
+ExecStart=/usr/local/bin/agentindex --bind ${AGENTINDEX_BIND} --db ${AGENTINDEX_DB} --identity_state ${AGENTINDEX_IDENTITY_STATE} --skill_registry_state ${AGENTINDEX_SKILL_STATE} --work_registry_state ${AGENTINDEX_WORK_STATE}
+Restart=on-failure
+RestartSec=3
+LimitNOFILE=1048576
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/agentnet /var/log/agentnet
+
+[Install]
+WantedBy=multi-user.target

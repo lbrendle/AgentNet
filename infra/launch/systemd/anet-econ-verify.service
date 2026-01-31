@@ -1,0 +1,22 @@
+[Unit]
+Description=AgentNet Economic Proof Verifier
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=agentnet
+Group=agentnet
+EnvironmentFile=/etc/agentnet/anet-econ-verify.env
+ExecStart=/usr/local/bin/anet-econ-verify --config ${ANET_ECON_VERIFY_CONFIG}
+Restart=on-failure
+RestartSec=3
+LimitNOFILE=1048576
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/agentnet /var/log/agentnet
+
+[Install]
+WantedBy=multi-user.target

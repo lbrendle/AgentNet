@@ -1,5 +1,5 @@
-use anyhow::{Context, Result};
 use anetsdk::CborValue;
+use anyhow::{Context, Result};
 use serde::Deserialize;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -19,6 +19,8 @@ pub struct Config {
     pub bootstrap: Vec<String>,
     #[serde(default)]
     pub protocols: Vec<String>,
+    #[serde(default)]
+    pub transports: Vec<String>,
     #[serde(default)]
     pub roles: Vec<String>,
     #[serde(default)]
@@ -421,7 +423,8 @@ impl Default for HandshakeConfig {
 
 impl Config {
     pub fn load(path: &Path) -> Result<Self> {
-        let data = fs::read_to_string(path).with_context(|| format!("read config {}", path.display()))?;
+        let data =
+            fs::read_to_string(path).with_context(|| format!("read config {}", path.display()))?;
         let cfg: Config = toml::from_str(&data).context("parse config toml")?;
         Ok(cfg)
     }
@@ -435,6 +438,14 @@ impl Config {
             ]
         } else {
             self.protocols.clone()
+        }
+    }
+
+    pub fn transports_or_default(&self) -> Vec<String> {
+        if self.transports.is_empty() {
+            vec!["quic".to_string()]
+        } else {
+            self.transports.clone()
         }
     }
 
@@ -459,7 +470,12 @@ impl FeaturesConfig {
         if !self.encodings.is_empty() {
             entries.push((
                 CborValue::Unsigned(0),
-                CborValue::Array(self.encodings.iter().map(|s| CborValue::Text(s.clone())).collect()),
+                CborValue::Array(
+                    self.encodings
+                        .iter()
+                        .map(|s| CborValue::Text(s.clone()))
+                        .collect(),
+                ),
             ));
         }
         if let Some(max_msg_bytes) = self.max_msg_bytes {
