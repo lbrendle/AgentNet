@@ -50,6 +50,32 @@ def request(
     return None
 
 
+def request_allow_disk_exists(
+    method: str, path: str, token: str, payload: object | None = None
+) -> object | None:
+    url = f"{BASE_URL}{path}"
+    data = None
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+    }
+    if payload is not None:
+        data = json.dumps(payload).encode("utf-8")
+    req = Request(url, data=data, method=method, headers=headers)
+    try:
+        with urlopen(req) as resp:
+            body = resp.read()
+            if not body:
+                return None
+            return json.loads(body.decode("utf-8"))
+    except HTTPError as exc:
+        body = exc.read().decode("utf-8", errors="replace")
+        if exc.code == 400 and "disk already exists" in body.lower():
+            return None
+        fail(f"{method} {path} failed: {exc.code} {body}")
+    return None
+
+
 def find_service(services: list[dict], name: str) -> dict:
     normalized = []
     for item in services:
@@ -81,7 +107,7 @@ def ensure_disk(
         "mountPath": mount_path,
         "serviceId": service_id,
     }
-    request("POST", "/disks", token, payload)
+    request_allow_disk_exists("POST", "/disks", token, payload)
 
 
 def load_env(path: Path) -> dict[str, str]:
