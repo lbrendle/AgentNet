@@ -49,21 +49,11 @@ def post_json(url: str, payload: dict) -> None:
             raise RuntimeError(f"unexpected status {resp.status}")
 
 
-def wait_for_file(path: Path, retry_sec: int) -> None:
-    while not path.exists():
-        print(f"[index-sync] waiting for {path}")
-        time.sleep(retry_sec)
-
-
 def sync_loop(base_url: str, state_dir: Path, interval: int, retry_sec: int, max_backoff: int) -> None:
     identity_path = state_dir / "identity_registry.json"
     skill_path = state_dir / "skill_registry.json"
     work_path = state_dir / "work_registry.json"
     mesh_info_path = state_dir / "mesh_info.json"
-
-    wait_for_file(identity_path, retry_sec)
-    wait_for_file(skill_path, retry_sec)
-    wait_for_file(work_path, retry_sec)
 
     last_hashes: dict[str, str] = {}
     backoff = retry_sec
@@ -75,6 +65,8 @@ def sync_loop(base_url: str, state_dir: Path, interval: int, retry_sec: int, max
                 ("skill", skill_path, "/ingest/skill_registry_state"),
                 ("work", work_path, "/ingest/work_registry_state"),
             ):
+                if not path.exists():
+                    continue
                 data = read_file(path)
                 digest = hash_bytes(data)
                 if last_hashes.get(name) == digest:
