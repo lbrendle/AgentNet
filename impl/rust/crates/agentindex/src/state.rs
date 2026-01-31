@@ -1,5 +1,5 @@
 use crate::db::IndexDb;
-use crate::models::SearchQuery;
+use crate::models::{MeshInfoIngest, SearchQuery};
 use anyhow::{anyhow, Result};
 use serde_json::json;
 use std::collections::{HashMap, HashSet};
@@ -71,6 +71,7 @@ pub struct IndexState {
     identity: RwLock<IdentityState>,
     skill_registry: RwLock<SkillRegistryState>,
     work_registry: RwLock<WorkRegistryState>,
+    mesh_info: RwLock<Option<MeshInfoIngest>>,
 }
 
 impl IndexState {
@@ -80,6 +81,7 @@ impl IndexState {
             identity: RwLock::new(IdentityState::default()),
             skill_registry: RwLock::new(SkillRegistryState::default()),
             work_registry: RwLock::new(WorkRegistryState::default()),
+            mesh_info: RwLock::new(None),
         }
     }
 
@@ -194,6 +196,17 @@ impl IndexState {
         let db = self.db.lock().await;
         let results = db.search_work_agreements(&query)?;
         Ok(json!({ "results": results, "count": results.len() }))
+    }
+
+    pub async fn set_mesh_info(&self, info: MeshInfoIngest) -> Result<()> {
+        let mut guard = self.mesh_info.write().await;
+        *guard = Some(info);
+        Ok(())
+    }
+
+    pub async fn mesh_info(&self) -> Option<MeshInfoIngest> {
+        let guard = self.mesh_info.read().await;
+        guard.clone()
     }
 
     pub async fn db_mut(&self) -> tokio::sync::MutexGuard<'_, IndexDb> {

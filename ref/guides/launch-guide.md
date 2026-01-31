@@ -97,7 +97,11 @@ python infra/launch/render/apply-config.py --api-key-file ref/renderkey.txt
 ```
 curl -s https://agentindex-mainnet.onrender.com/health
 ```
-5) Capture the AgentMesh peer id from startup logs and publish the bootstrap multiaddr:
+5) Fetch the AgentMesh peer id (via AgentIndex mesh info or startup logs) and publish the bootstrap multiaddr:
+```
+curl -s https://agentindex-mainnet.onrender.com/mesh/info
+```
+If the mesh info endpoint is empty, read the peer id from AgentMesh startup logs.
 ```
 /dns4/agentmesh-mainnet.onrender.com/tcp/443/wss/p2p/<peer-id>
 ```

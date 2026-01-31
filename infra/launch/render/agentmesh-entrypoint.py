@@ -6,6 +6,7 @@ import json
 import os
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 
@@ -173,6 +174,19 @@ def read_pubkey_hex(key_path: Path) -> str:
     return pubkey_hex
 
 
+def read_peer_id(key_path: Path) -> str:
+    result = subprocess.run(
+        ["/usr/local/bin/agentmesh", "peer-id", "--key", str(key_path)],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    peer_id = result.stdout.strip()
+    if not peer_id:
+        fail("agentmesh peer-id returned empty output")
+    return peer_id
+
+
 def compute_agent_did(pubkey_hex: str) -> str:
     try:
         raw = bytes.fromhex(pubkey_hex)
@@ -191,6 +205,7 @@ def main() -> None:
     ensure_key(key_path)
 
     pubkey_hex = read_pubkey_hex(key_path)
+    peer_id = read_peer_id(key_path)
     agent_did_value = env_optional("AGENTMESH_AGENT_DID")
     if agent_did_value is None or agent_did_value.lower() == "auto":
         agent_did_value = compute_agent_did(pubkey_hex)
@@ -268,13 +283,16 @@ def main() -> None:
     if agent_record_key.lower() == "auto":
         agent_record_key = f"agentnet/agent/{agent_did_value}"
 
+    listen_addrs = env_list("AGENTMESH_LISTEN_ADDRS")
+    public_ws = env_optional("AGENTMESH_PUBLIC_WS")
+
     config = {
         "chain_id": env_required("AGENTMESH_CHAIN_ID"),
         "agent_did": agent_did_value,
         "key_path": str(key_path),
         "node_id": env_optional("AGENTMESH_NODE_ID"),
         "state_dir": str(state_dir),
-        "listen_addrs": env_list("AGENTMESH_LISTEN_ADDRS"),
+        "listen_addrs": listen_addrs,
         "bootstrap": env_list_optional("AGENTMESH_BOOTSTRAP_ADDRS"),
         "protocols": env_list("AGENTMESH_PROTOCOLS"),
         "transports": env_list("AGENTMESH_TRANSPORTS"),
@@ -389,6 +407,17 @@ def main() -> None:
             "community_record": dht_community_record,
         },
     }
+
+    mesh_info = {
+        "agent_did": agent_did_value,
+        "peer_id": peer_id,
+        "listen_addrs": listen_addrs,
+        "public_ws": public_ws,
+        "updated_at": int(time.time()),
+    }
+    mesh_info_path = state_dir / "mesh_info.json"
+    mesh_info_path.write_text(json.dumps(mesh_info))
+    print(f"[agentmesh-entrypoint] wrote mesh info to {mesh_info_path}")
 
     config_path = Path(env_optional("AGENTMESH_CONFIG_PATH", "/var/lib/agentnet/config/agentmesh.toml"))
     config_path.parent.mkdir(parents=True, exist_ok=True)

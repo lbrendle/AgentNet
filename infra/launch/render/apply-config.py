@@ -181,8 +181,19 @@ def main() -> None:
     if not index_url:
         fail("agentindex url not available yet")
 
+    mesh_details = mesh.get("serviceDetails", {})
+    mesh_url = mesh_details.get("url")
+    mesh_public_ws = None
+    if mesh_url:
+        if mesh_url.startswith("https://"):
+            mesh_public_ws = "wss://" + mesh_url[len("https://") :]
+        elif mesh_url.startswith("http://"):
+            mesh_public_ws = "ws://" + mesh_url[len("http://") :]
+
     mesh_env = load_env(args.agentmesh_env)
     mesh_env["AGENTINDEX_URL"] = index_url
+    if mesh_public_ws:
+        mesh_env["AGENTMESH_PUBLIC_WS"] = mesh_public_ws
 
     index_env = load_env(args.agentindex_env)
 

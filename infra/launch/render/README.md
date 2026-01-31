@@ -141,6 +141,7 @@ Index sync:
 - `AGENTINDEX_SYNC_INTERVAL_SEC`
 - `AGENTINDEX_SYNC_RETRY_SEC`
 - `AGENTINDEX_SYNC_MAX_BACKOFF_SEC`
+- `AGENTMESH_PUBLIC_WS` (optional; advertised WebSocket URL for mesh info publishing)
 
 ## Required environment variables (agentindex)
 - `AGENTINDEX_BIND`

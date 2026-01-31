@@ -11,9 +11,9 @@ use crate::ingest::{
     ingest_work_agreement, ingest_work_offer, ingest_work_registry_state,
 };
 use crate::models::{
-    AgentRecordIngest, CommunityRecordIngest, IdentityStateIngest, ReceiptIngest, SearchQuery,
-    ServiceRecordIngest, SkillManifestIngest, SkillRegistryStateIngest, WorkAgreementIngest,
-    WorkOfferIngest, WorkRegistryStateIngest,
+    AgentRecordIngest, CommunityRecordIngest, IdentityStateIngest, MeshInfoIngest, ReceiptIngest,
+    SearchQuery, ServiceRecordIngest, SkillManifestIngest, SkillRegistryStateIngest,
+    WorkAgreementIngest, WorkOfferIngest, WorkRegistryStateIngest,
 };
 use crate::state::IndexState;
 use anyhow::Result;
@@ -95,6 +95,8 @@ async fn main() -> Result<()> {
             "/ingest/work_registry_state",
             post(ingest_work_state_handler),
         )
+        .route("/ingest/mesh_info", post(ingest_mesh_info_handler))
+        .route("/mesh/info", get(mesh_info_handler))
         .route("/search/agents", get(search_agents))
         .route("/search/skills", get(search_skills))
         .route("/search/work_offers", get(search_work_offers))
@@ -217,6 +219,23 @@ async fn ingest_work_state_handler(
         .await
         .map_err(err_to_response)?;
     Ok(Json(json!({"status": "ok"})))
+}
+
+async fn ingest_mesh_info_handler(
+    State(state): State<Arc<IndexState>>,
+    Json(payload): Json<MeshInfoIngest>,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    state.set_mesh_info(payload).await.map_err(err_to_response)?;
+    Ok(Json(json!({"status": "ok"})))
+}
+
+async fn mesh_info_handler(
+    State(state): State<Arc<IndexState>>,
+) -> Result<Json<MeshInfoIngest>, (StatusCode, String)> {
+    match state.mesh_info().await {
+        Some(info) => Ok(Json(info)),
+        None => Err((StatusCode::NOT_FOUND, "mesh info not available".to_string())),
+    }
 }
 
 async fn search_agents(

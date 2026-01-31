@@ -59,6 +59,7 @@ def sync_loop(base_url: str, state_dir: Path, interval: int, retry_sec: int, max
     identity_path = state_dir / "identity_registry.json"
     skill_path = state_dir / "skill_registry.json"
     work_path = state_dir / "work_registry.json"
+    mesh_info_path = state_dir / "mesh_info.json"
 
     wait_for_file(identity_path, retry_sec)
     wait_for_file(skill_path, retry_sec)
@@ -82,6 +83,17 @@ def sync_loop(base_url: str, state_dir: Path, interval: int, retry_sec: int, max
                 post_json(f"{base_url}{endpoint}", payload)
                 last_hashes[name] = digest
                 print(f"[index-sync] synced {name} state")
+            if mesh_info_path.exists():
+                data = read_file(mesh_info_path)
+                digest = hash_bytes(data)
+                if last_hashes.get("mesh_info") != digest:
+                    try:
+                        payload = json.loads(data.decode("utf-8"))
+                    except json.JSONDecodeError as exc:
+                        raise RuntimeError(f"invalid mesh_info.json: {exc}") from exc
+                    post_json(f\"{base_url}/ingest/mesh_info\", payload)
+                    last_hashes[\"mesh_info\"] = digest
+                    print(\"[index-sync] synced mesh info\")
             backoff = retry_sec
             time.sleep(interval)
         except Exception as exc:  # pylint: disable=broad-except

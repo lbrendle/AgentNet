@@ -1,4 +1,4 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 
 #[derive(Debug, Deserialize)]
@@ -57,6 +57,15 @@ pub struct SkillRegistryStateIngest {
 #[derive(Debug, Deserialize)]
 pub struct WorkRegistryStateIngest {
     pub json: String,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct MeshInfoIngest {
+    pub agent_did: String,
+    pub peer_id: String,
+    pub listen_addrs: Vec<String>,
+    pub public_ws: Option<String>,
+    pub updated_at: u64,
 }
 
 #[derive(Debug, Clone, Deserialize)]
