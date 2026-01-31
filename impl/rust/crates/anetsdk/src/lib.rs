@@ -8,6 +8,14 @@ mod nodehello;
 mod signed;
 mod dht;
 mod pubsub;
+mod tx;
+mod escrow;
+mod identity;
+mod economy;
+mod skill;
+mod work;
+mod agentmail;
+mod markdown;
 
 pub use cbor::{decode_canonical, encode_canonical, CborValue};
 pub use crypto::{sha256, verify_ed25519_hash};
@@ -31,3 +39,46 @@ pub use pubsub::{
     build_pubsub_envelope, decode_pubsub_envelope, parse_pubsub_envelope, parse_pubsub_payload,
     verify_pubsub_envelope, EconomicProof, PubSubEnvelope, PubSubEnvelopePayload,
 };
+pub use tx::{
+    build_tx_envelope, decode_tx_envelope, parse_tx_envelope, tx_envelope_payload_to_cbor,
+    verify_tx_envelope, TxEnvelope,
+};
+pub use escrow::{
+    escrow_dispute_payload_to_cbor, escrow_lock_payload_to_cbor, escrow_release_payload_to_cbor,
+    escrow_resolve_payload_to_cbor, parse_escrow_dispute_payload, parse_escrow_lock_payload,
+    parse_escrow_release_payload, parse_escrow_resolve_payload, EscrowDisputePayload,
+    EscrowLockPayload, EscrowReleasePayload, EscrowResolvePayload,
+};
+pub use identity::{
+    credential_revoke_payload_to_cbor, identity_register_payload_to_cbor, identity_rotate_payload_to_cbor,
+    parse_credential_revoke_payload, parse_identity_register_payload, parse_identity_rotate_payload,
+    CredentialRevokePayload, IdentityRegisterPayload, IdentityRotatePayload,
+};
+pub use economy::{
+    parse_postage_payload, parse_transfer_payload, postage_payload_to_cbor, transfer_payload_to_cbor,
+    PostagePayload, TransferPayload,
+};
+pub use skill::{
+    build_skill_manifest, decode_skill_manifest, parse_skill_manifest, parse_skill_manifest_payload,
+    parse_skill_publish_payload, parse_skill_revoke_payload, parse_skill_update_payload,
+    skill_publish_payload_to_cbor, skill_revoke_payload_to_cbor, skill_update_payload_to_cbor,
+    verify_skill_manifest, SkillArtifact, SkillManifest, SkillManifestPayload, SkillPublishPayload,
+    SkillRevokePayload, SkillUpdatePayload,
+};
+pub use work::{
+    build_work_agreement, build_work_offer, decode_work_agreement, decode_work_offer,
+    parse_work_agreement, parse_work_agreement_payload, parse_work_offer, parse_work_offer_payload,
+    parse_work_agreement_close_payload, parse_work_agreement_publish_payload,
+    parse_work_agreement_update_payload, parse_work_offer_publish_payload,
+    verify_work_agreement, verify_work_offer, work_agreement_close_payload_to_cbor,
+    work_agreement_publish_payload_to_cbor, work_agreement_update_payload_to_cbor,
+    work_offer_publish_payload_to_cbor, WorkAgreement, WorkAgreementClosePayload,
+    WorkAgreementPayload, WorkAgreementPublishPayload, WorkAgreementUpdatePayload, WorkMilestone,
+    WorkOffer, WorkOfferPayload, WorkOfferPublishPayload,
+};
+pub use agentmail::{
+    build_agentmail_message, decode_agentmail_message, parse_agentmail_message,
+    parse_agentmail_payload, verify_agentmail_message, AgentMailAttachment, AgentMailMessage,
+    AgentMailMessagePayload,
+};
+pub use markdown::{canonicalize_markdown_profile, validate_markdown_profile};

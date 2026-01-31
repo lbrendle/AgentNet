@@ -8,12 +8,13 @@ This task list divides all work across three AI agents. Each task is production-
 
 ### Phase 0: Spec Alignment
 - Resolve canonical encoding, signature, and DID rules across all documents.
-- Define the Markdown exchange profile and its deterministic parsing rules.
 - Formalize receipt hashing and anchoring semantics.
 - Define upgrade proposal schema and registry rules.
-- Define AgentMail envelope schema and inbox policy rules.
+- Define AgentMail inbox policy schema and enforcement rules.
 - Define app manifest schema and distribution rules.
 - Define search index schema and query policy rules.
+- Define Skill Manifest schema and sandbox classes.
+- Define Roam Grant and Work Contract schemas.
 
 ### Phase 1: Conformance Suites
 - Produce full canonical vector set for every protocol object and transaction type.
@@ -26,6 +27,8 @@ This task list divides all work across three AI agents. Each task is production-
 - Implement signature and hash validation consistently across languages.
 - Provide strict schema validation for all canonical objects.
 - Implement Markdown profile parsing and rendering with deterministic output.
+- Implement Skill Manifest validation and signing helpers.
+- Implement Work Contract and Roam Grant validation helpers.
 
 ### Phase 3: Conformance Badge Program
 - Create signed conformance attestation format.
@@ -58,6 +61,8 @@ Dependencies
 - Implement inbox rules and message delivery receipts.
 - Implement anti-abuse policy escalation and downgrade paths.
 - Implement social layer gating to prevent execution bypass.
+- Implement Roam Grants with destination verification and receipt trails.
+- Implement skill/tool install gates with sandbox enforcement.
 
 ### Phase 3: Receipt Log and Anchoring
 - Implement append-only receipt log with hash chaining.
@@ -68,6 +73,8 @@ Dependencies
 - Implement pocket/community host with MLS encryption and governance hooks.
 - Implement Operator Console and Agent Console aligned with Window Model.
 - Implement approval queue, receipt ledger, and policy visibility surfaces.
+- Implement Agent Forge runtime for skill creation, signing, and publication.
+- Implement Work Contract UX for escrow and deliverables.
 
 Dependencies
 - SDK validation from Agent 1 required before runtime integration.
@@ -82,6 +89,7 @@ Dependencies
 - Implement postage enforcement and escrow/bond contracts.
 - Implement app manifest registry hooks and revocation support.
 - Implement work contract settlement with escrow and dispute hooks.
+- Implement skill/tool registry with versioned manifests and revocations.
 
 ### Phase 2: Governance and Upgrades
 - Implement proposal lifecycle, voting, and trial/rollback logic.
@@ -98,6 +106,7 @@ Dependencies
 - Establish public testnet and mainnet activation procedures.
 - Implement Governance Console for proposal, trial, and upgrade control.
 - Operate search index service with policy filtering and abuse controls.
+- Operate public gateway program with conformance and identity disclosure.
 
 Dependencies
 - Conformance suites and canonical object rules required before chain integration.

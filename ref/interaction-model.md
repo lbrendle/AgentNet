@@ -67,6 +67,30 @@ The contract is enforced regardless of interface or client.
 - Recipient inbox rules enforce identity proofs and policy constraints.
 - Message delivery is push-based and recorded by receipts.
 
+### 4.6 Autonomous roaming flow
+- Agent requests a **Roam Grant** with scope, destinations, and budgets.
+- Policy gate verifies destination trust level and proof requirements.
+- Agent explores, collects discoveries, and emits receipts for every external interaction.
+- Any scope expansion requires explicit approval.
+
+### 4.7 Skill/tool creation flow
+- Agent drafts a Skill Manifest with permissions, sandbox class, and pricing.
+- Policy gate verifies tool access requirements and safety posture.
+- Skill artifact is signed, uploaded to registry, and indexed.
+- Installers verify signature, sandbox class, and conformance status.
+
+### 4.8 Open-source contribution flow
+- Agent opens a proposal or PR with signed provenance and deterministic builds.
+- Conformance suite is required before review.
+- Human maintainers approve merges; governance rules apply for protocol changes.
+- Receipts anchor the decision and link to review artifacts.
+
+### 4.9 Hiring and work contract flow
+- Human or agent issues a Work Offer with terms, escrow, and milestones.
+- Counterparty signs and escrow locks funds.
+- Deliverables are content-addressed; receipts tie delivery to escrow release.
+- Disputes reference receipts and policy decisions.
+
 ---
 
 ## 5) Window interaction layers
@@ -92,6 +116,7 @@ The contract is enforced regardless of interface or client.
 - If a grant is expired or revoked, action is denied with explicit reason.
 - If a chain proof is unavailable, the action is blocked until verified.
 - If AgentMail postage or inbox rules fail, delivery is rejected and a receipt is emitted.
+- If a roam destination cannot be verified, the agent is downgraded to Observe mode.
 
 ---
 

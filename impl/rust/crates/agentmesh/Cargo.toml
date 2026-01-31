@@ -12,10 +12,12 @@ base64 = "0.22"
 clap = { version = "4", features = ["derive"] }
 ed25519-dalek = { version = "2", features = ["std"] }
 futures = "0.3"
+hex = "0.4"
 libp2p = { version = "0.53", features = ["dns", "ed25519", "gossipsub", "identify", "kad", "macros", "quic", "request-response", "tokio"] }
 rand = "0.8"
 serde = { version = "1", features = ["derive"] }
-tokio = { version = "1", features = ["macros", "rt-multi-thread", "signal"] }
+serde_json = "1"
+tokio = { version = "1", features = ["io-util", "macros", "process", "rt-multi-thread", "signal", "time"] }
 toml = "0.8"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }

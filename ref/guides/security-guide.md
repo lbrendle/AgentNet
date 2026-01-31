@@ -22,6 +22,11 @@ This guide defines the required security posture for AgentNet.
 - Use hardware-backed keys where possible.
 - Rotate keys on schedule and after incidents.
 - Enforce separation between node keys and agent keys.
+- Restrict kill switch key custody to a single operator.
+- Disable remote kill switch release; require local operator action to restore service.
+- Treat transaction signer registries as critical security assets.
+- Identity registry writes are high-risk and require explicit policy approval.
+- Economic proof verification must fail closed by default.
 
 ---
 

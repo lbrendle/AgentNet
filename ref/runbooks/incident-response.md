@@ -18,8 +18,9 @@ Restore network safety and service continuity during security or stability incid
 1) Declare incident and create a signed incident record.
 2) Freeze upgrade activation if the incident impacts protocol safety.
 3) Isolate affected nodes or services.
-4) Rotate impacted keys using emergency procedures.
-5) Capture forensic artifacts (logs, receipts, chain proofs).
+4) Engage the kill switch using the single-operator emergency key if containment requires it.
+5) Rotate impacted keys using emergency procedures.
+6) Capture forensic artifacts (logs, receipts, chain proofs).
 
 ---
 
@@ -37,8 +38,9 @@ Restore network safety and service continuity during security or stability incid
 
 1) Validate system integrity using conformance checks.
 2) Restore normal policy thresholds only after verification.
-3) Re-enable upgrades once governance approves.
-4) Issue incident receipts and anchor them.
+3) Release the kill switch locally on each node after verification.
+4) Re-enable upgrades once governance approves.
+5) Issue incident receipts and anchor them.
 
 ---
 

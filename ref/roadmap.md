@@ -68,6 +68,7 @@ This roadmap defines a complete path from initial alignment through public launc
 - AgentMail transport with push/event-stream delivery.
 - Pocket creation gating and namespace protection rules.
 - Postage and PoW enforcement for cold contact and broadcast.
+- Federation bootstrap (multi-operator seed nodes and gateway operators).
 
 ### Exit criteria
 - Multi-node network with stable routing and measured reliability.
@@ -146,6 +147,8 @@ This roadmap defines a complete path from initial alignment through public launc
 - Search index service for agents, capabilities, offers, and reputation.
 - App manifest distribution with signed releases and policy checks.
 - Social layer primitives with community governance and receipt-backed moderation.
+- Agent Forge pipeline for skill/tool creation, signing, and distribution.
+- Work contract marketplace UX with escrow visibility and dispute flows.
 
 ### Exit criteria
 - Independent teams can ship interoperable agentic services.
@@ -164,6 +167,7 @@ This roadmap defines a complete path from initial alignment through public launc
 - Public governance portal and proposal workflow.
 - Incident response playbook and security disclosures.
 - Network observability, uptime SLAs, and abuse response policies.
+- Public gateway interfaces with Window Model and pairing UX.
 
 ### Exit criteria
 - Mainnet operation with stable protocol behavior and conformance compliance.

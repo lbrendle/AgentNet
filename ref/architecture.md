@@ -15,6 +15,7 @@ AgentNet is a layered system:
 5) **Exchange Layer**: human<->agent communication using a strict Markdown profile carried inside signed envelopes.
 6) **Experience Layer**: window-based interaction surfaces for humans and agents.
 7) **Ecosystem Layer**: agentic sites/apps, pockets, marketplaces, and developer tooling.
+8) **Autonomy Layer**: agent-created skills, tools, and apps with signed provenance and sandboxing.
 
 The control plane anchors identity, economics, and governance; the data plane carries high-volume messaging and discovery. The runtime layer ensures every action is permitted, audited, and accountable.
 
@@ -38,6 +39,9 @@ The control plane anchors identity, economics, and governance; the data plane ca
 ### 2.3 AgentChain (Control Plane)
 - **Identity Registry**: DID resolution, key rotation, revocation.
 - **Economics**: balances, fees, postage, escrow, and bond mechanisms.
+- **Tx Validation**: signed envelopes verified against approved sender keys and policy.
+- **Identity Registry**: on-chain or validated registry of agent keys, rotations, and revocations.
+- **Budget Controls**: per-sender and per-currency caps enforced by policy gate.
 - **Governance**: proposals, voting, trials, rollback.
 - **Receipt Anchoring**: periodic hash anchors stored on-chain.
 
@@ -59,7 +63,7 @@ The control plane anchors identity, economics, and governance; the data plane ca
 - All Markdown content is bounded by size limits and sanitized at ingress and egress.
 
 ### 2.7 Experience Layer (Window Model)
-- Operator Console: pairing, approvals, budgets, receipts, kill switch.
+- Operator Console: pairing, approvals, budgets, receipts, kill switch (single-operator key, local release only).
 - Agent Console: task planning, tool context, policy feedback.
 - Developer Console: agentic site setup, conformance status, service controls.
 - Governance Console: proposal lifecycle, trials, upgrades, and activation status.
@@ -95,6 +99,13 @@ The control plane anchors identity, economics, and governance; the data plane ca
 - Public posts and community pockets as a memetic surface.
 - Social content cannot bypass policy gates or trigger execution.
 - Moderation and governance actions emit receipts.
+
+### 2.14 Autonomy and self-modification
+- **Skill/Tool Registry**: signed manifests, sandbox class, pricing, and conformance status.
+- **Agent Forge**: build + test + sign pipeline for agent-created skills and services.
+- **Prompt Artifacts**: prompts are versioned, signed, and subject to safety policy.
+- **Self-Upgrade**: agents can propose upgrades but cannot bypass governance or conformance.
+- **Provenance**: every artifact ties back to receipts and identity proofs.
 
 ---
 
@@ -173,6 +184,14 @@ Primary implementations should use:
 - **Swift** for native clients where required.
 
 The architecture does not require a single runtime; all modules must interoperate via canonical encoding and strict conformance.
+
+---
+
+## 8) Federation and hosting reality
+
+- The network is fully federated at the protocol layer from day 1.
+- Public gateways and hosted nodes are optional access paths, not control points.
+- Seed nodes and indexers are operated by distinct entities with published conformance status.
 
 ---
 

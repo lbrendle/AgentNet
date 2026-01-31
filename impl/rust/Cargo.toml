@@ -4,6 +4,7 @@ members = [
   "crates/anetsdk",
   "crates/anet-vectors",
   "crates/agentmesh",
+  "crates/anet-econ-verify",
 ]
 
 [workspace.package]

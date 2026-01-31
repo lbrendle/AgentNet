@@ -1,8 +1,14 @@
 use anyhow::{anyhow, Context, Result};
 use anetsdk::{
-    decode_canonical, encode_canonical, parse_action_intent, parse_approval_payload,
-    parse_grant_payload, parse_nodehello_payload, parse_receipt_payload, parse_tx_envelope_payload,
-    payload_from_parsed, sha256, sign_ed25519_hash, verify_ed25519_hash,
+    decode_canonical, encode_canonical, parse_action_intent, parse_agentmail_message,
+    parse_agentmail_payload, parse_approval_payload, parse_grant_payload, parse_nodehello_payload,
+    parse_receipt_payload, parse_skill_manifest_payload, parse_skill_publish_payload,
+    parse_skill_revoke_payload, parse_skill_update_payload, parse_tx_envelope_payload,
+    parse_work_agreement_close_payload, parse_work_agreement_payload,
+    parse_work_agreement_publish_payload, parse_work_agreement_update_payload,
+    parse_work_offer_payload, parse_work_offer_publish_payload, payload_from_parsed, sha256,
+    sign_ed25519_hash, verify_ed25519_hash, verify_skill_manifest, verify_work_agreement,
+    verify_work_offer, CborValue,
 };
 use serde::Deserialize;
 use std::fs;
@@ -72,6 +78,75 @@ struct VectorEntry {
     tx_envelope_payload_sha256_hex: Option<String>,
     #[serde(default)]
     tx_signature_hex: Option<String>,
+
+    #[serde(default)]
+    skill_manifest_full_object_cbor_hex: Option<String>,
+    #[serde(default)]
+    work_offer_full_object_cbor_hex: Option<String>,
+    #[serde(default)]
+    work_agreement_full_object_cbor_hex: Option<String>,
+
+    #[serde(default)]
+    skill_publish_payload_cbor_hex: Option<String>,
+    #[serde(default)]
+    skill_publish_payload_sha256_hex: Option<String>,
+    #[serde(default)]
+    skill_update_payload_cbor_hex: Option<String>,
+    #[serde(default)]
+    skill_update_payload_sha256_hex: Option<String>,
+    #[serde(default)]
+    skill_revoke_payload_cbor_hex: Option<String>,
+    #[serde(default)]
+    skill_revoke_payload_sha256_hex: Option<String>,
+
+    #[serde(default)]
+    work_offer_payload_cbor_hex: Option<String>,
+    #[serde(default)]
+    work_offer_payload_sha256_hex: Option<String>,
+    #[serde(default)]
+    work_offer_signature_hex: Option<String>,
+
+    #[serde(default)]
+    work_agreement_payload_cbor_hex: Option<String>,
+    #[serde(default)]
+    work_agreement_payload_sha256_hex: Option<String>,
+    #[serde(default)]
+    work_agreement_signature_hex: Option<String>,
+
+    #[serde(default)]
+    work_offer_publish_payload_cbor_hex: Option<String>,
+    #[serde(default)]
+    work_offer_publish_payload_sha256_hex: Option<String>,
+    #[serde(default)]
+    work_agreement_publish_payload_cbor_hex: Option<String>,
+    #[serde(default)]
+    work_agreement_publish_payload_sha256_hex: Option<String>,
+    #[serde(default)]
+    work_agreement_update_payload_cbor_hex: Option<String>,
+    #[serde(default)]
+    work_agreement_update_payload_sha256_hex: Option<String>,
+    #[serde(default)]
+    work_agreement_close_payload_cbor_hex: Option<String>,
+    #[serde(default)]
+    work_agreement_close_payload_sha256_hex: Option<String>,
+
+    #[serde(default)]
+    kill_switch_payload_cbor_hex: Option<String>,
+    #[serde(default)]
+    kill_switch_payload_sha256_hex: Option<String>,
+    #[serde(default)]
+    kill_switch_signature_hex: Option<String>,
+    #[serde(default)]
+    kill_switch_full_object_cbor_hex: Option<String>,
+
+    #[serde(default)]
+    agentmail_payload_cbor_hex: Option<String>,
+    #[serde(default)]
+    agentmail_payload_sha256_hex: Option<String>,
+    #[serde(default)]
+    agentmail_signature_hex: Option<String>,
+    #[serde(default)]
+    agentmail_full_object_cbor_hex: Option<String>,
 }
 
 fn main() -> Result<()> {
@@ -185,6 +260,186 @@ fn main() -> Result<()> {
                 let parsed = decode_canonical(&payload)?;
                 parse_tx_envelope_payload(&parsed)?;
             }
+            "TV7_KillSwitch" => {
+                let payload = decode_hex_required(entry.kill_switch_payload_cbor_hex, "kill_switch_payload_cbor_hex")?;
+                let expected_hash = decode_hex_required(entry.kill_switch_payload_sha256_hex, "kill_switch_payload_sha256_hex")?;
+                let expected_sig = decode_hex_required(entry.kill_switch_signature_hex, "kill_switch_signature_hex")?;
+                let full = decode_hex_required(entry.kill_switch_full_object_cbor_hex, "kill_switch_full_object_cbor_hex")?;
+
+                verify_hash_and_sig("TV7_KillSwitch", &public_key, &payload, &expected_hash, &expected_sig)?;
+                ensure_roundtrip("TV7_KillSwitch payload", &payload)?;
+                ensure_roundtrip("TV7_KillSwitch full object", &full)?;
+
+                let payload_value = decode_canonical(&payload)?;
+                let payload_parts = parse_kill_switch_map(&payload_value)?;
+                if payload_parts.signature.is_some() {
+                    return Err(anyhow!("TV7_KillSwitch payload must not include signature"));
+                }
+                ensure_kill_switch_parts("TV7_KillSwitch payload", &payload_parts, false)?;
+
+                let full_value = decode_canonical(&full)?;
+                let full_parts = parse_kill_switch_map(&full_value)?;
+                ensure_kill_switch_parts("TV7_KillSwitch full object", &full_parts, true)?;
+                let full_sig = full_parts
+                    .signature
+                    .ok_or_else(|| anyhow!("TV7_KillSwitch full object missing signature"))?;
+                if full_sig != expected_sig {
+                    return Err(anyhow!("TV7_KillSwitch signature mismatch"));
+                }
+                if payload_parts.action != full_parts.action
+                    || payload_parts.reason != full_parts.reason
+                    || payload_parts.ts != full_parts.ts
+                    || payload_parts.nonce != full_parts.nonce
+                {
+                    return Err(anyhow!("TV7_KillSwitch full object fields mismatch"));
+                }
+                let reconstructed = encode_canonical(&kill_switch_payload_map(&payload_parts))?;
+                if reconstructed != payload {
+                    return Err(anyhow!("TV7_KillSwitch payload reconstruction mismatch"));
+                }
+            }
+            "TV8_SkillManifest" => {
+                let payload = decode_hex_required(entry.object_cbor_hex, "object_cbor_hex")?;
+                let expected_hash = decode_hex_required(entry.sha256_hex, "sha256_hex")?;
+                let expected_sig = decode_hex_required(entry.signature_hex, "signature_hex")?;
+                verify_hash_and_sig("TV8_SkillManifest", &public_key, &payload, &expected_hash, &expected_sig)?;
+                ensure_roundtrip("TV8_SkillManifest", &payload)?;
+                let parsed = decode_canonical(&payload)?;
+                parse_skill_manifest_payload(&parsed)?;
+                if let Some(full_hex) = entry.skill_manifest_full_object_cbor_hex {
+                    let full = hex::decode(&full_hex).context("decode skill_manifest_full_object_cbor_hex")?;
+                    ensure_roundtrip("TV8_SkillManifest full object", &full)?;
+                    verify_skill_manifest(&full, &public_key)?;
+                }
+            }
+            "TV9_WorkOffer" => {
+                let payload = decode_hex_required(entry.work_offer_payload_cbor_hex, "work_offer_payload_cbor_hex")?;
+                let expected_hash = decode_hex_required(entry.work_offer_payload_sha256_hex, "work_offer_payload_sha256_hex")?;
+                let expected_sig = decode_hex_required(entry.work_offer_signature_hex, "work_offer_signature_hex")?;
+                verify_hash_and_sig("TV9_WorkOffer", &public_key, &payload, &expected_hash, &expected_sig)?;
+                ensure_roundtrip("TV9_WorkOffer", &payload)?;
+                let parsed = decode_canonical(&payload)?;
+                parse_work_offer_payload(&parsed)?;
+                if let Some(full_hex) = entry.work_offer_full_object_cbor_hex {
+                    let full = hex::decode(&full_hex).context("decode work_offer_full_object_cbor_hex")?;
+                    ensure_roundtrip("TV9_WorkOffer full object", &full)?;
+                    verify_work_offer(&full, &public_key)?;
+                }
+            }
+            "TV10_WorkAgreement" => {
+                let payload = decode_hex_required(entry.work_agreement_payload_cbor_hex, "work_agreement_payload_cbor_hex")?;
+                let expected_hash = decode_hex_required(entry.work_agreement_payload_sha256_hex, "work_agreement_payload_sha256_hex")?;
+                let expected_sig = decode_hex_required(entry.work_agreement_signature_hex, "work_agreement_signature_hex")?;
+                verify_hash_and_sig("TV10_WorkAgreement", &public_key, &payload, &expected_hash, &expected_sig)?;
+                ensure_roundtrip("TV10_WorkAgreement", &payload)?;
+                let parsed = decode_canonical(&payload)?;
+                parse_work_agreement_payload(&parsed)?;
+                if let Some(full_hex) = entry.work_agreement_full_object_cbor_hex {
+                    let full = hex::decode(&full_hex).context("decode work_agreement_full_object_cbor_hex")?;
+                    ensure_roundtrip("TV10_WorkAgreement full object", &full)?;
+                    verify_work_agreement(&full, &public_key)?;
+                }
+            }
+            "TV11_SkillPublishPayload" => {
+                let payload = decode_hex_required(entry.skill_publish_payload_cbor_hex, "skill_publish_payload_cbor_hex")?;
+                let expected_hash = decode_hex_required(entry.skill_publish_payload_sha256_hex, "skill_publish_payload_sha256_hex")?;
+                let digest = sha256(&payload);
+                if digest.as_slice() != expected_hash {
+                    return Err(anyhow!("TV11_SkillPublishPayload hash mismatch"));
+                }
+                ensure_roundtrip("TV11_SkillPublishPayload", &payload)?;
+                let parsed = decode_canonical(&payload)?;
+                parse_skill_publish_payload(&parsed)?;
+            }
+            "TV12_SkillUpdatePayload" => {
+                let payload = decode_hex_required(entry.skill_update_payload_cbor_hex, "skill_update_payload_cbor_hex")?;
+                let expected_hash = decode_hex_required(entry.skill_update_payload_sha256_hex, "skill_update_payload_sha256_hex")?;
+                let digest = sha256(&payload);
+                if digest.as_slice() != expected_hash {
+                    return Err(anyhow!("TV12_SkillUpdatePayload hash mismatch"));
+                }
+                ensure_roundtrip("TV12_SkillUpdatePayload", &payload)?;
+                let parsed = decode_canonical(&payload)?;
+                parse_skill_update_payload(&parsed)?;
+            }
+            "TV13_SkillRevokePayload" => {
+                let payload = decode_hex_required(entry.skill_revoke_payload_cbor_hex, "skill_revoke_payload_cbor_hex")?;
+                let expected_hash = decode_hex_required(entry.skill_revoke_payload_sha256_hex, "skill_revoke_payload_sha256_hex")?;
+                let digest = sha256(&payload);
+                if digest.as_slice() != expected_hash {
+                    return Err(anyhow!("TV13_SkillRevokePayload hash mismatch"));
+                }
+                ensure_roundtrip("TV13_SkillRevokePayload", &payload)?;
+                let parsed = decode_canonical(&payload)?;
+                parse_skill_revoke_payload(&parsed)?;
+            }
+            "TV14_WorkOfferPublishPayload" => {
+                let payload = decode_hex_required(entry.work_offer_publish_payload_cbor_hex, "work_offer_publish_payload_cbor_hex")?;
+                let expected_hash = decode_hex_required(entry.work_offer_publish_payload_sha256_hex, "work_offer_publish_payload_sha256_hex")?;
+                let digest = sha256(&payload);
+                if digest.as_slice() != expected_hash {
+                    return Err(anyhow!("TV14_WorkOfferPublishPayload hash mismatch"));
+                }
+                ensure_roundtrip("TV14_WorkOfferPublishPayload", &payload)?;
+                let parsed = decode_canonical(&payload)?;
+                parse_work_offer_publish_payload(&parsed)?;
+            }
+            "TV15_WorkAgreementPublishPayload" => {
+                let payload = decode_hex_required(entry.work_agreement_publish_payload_cbor_hex, "work_agreement_publish_payload_cbor_hex")?;
+                let expected_hash = decode_hex_required(entry.work_agreement_publish_payload_sha256_hex, "work_agreement_publish_payload_sha256_hex")?;
+                let digest = sha256(&payload);
+                if digest.as_slice() != expected_hash {
+                    return Err(anyhow!("TV15_WorkAgreementPublishPayload hash mismatch"));
+                }
+                ensure_roundtrip("TV15_WorkAgreementPublishPayload", &payload)?;
+                let parsed = decode_canonical(&payload)?;
+                parse_work_agreement_publish_payload(&parsed)?;
+            }
+            "TV16_WorkAgreementUpdatePayload" => {
+                let payload = decode_hex_required(entry.work_agreement_update_payload_cbor_hex, "work_agreement_update_payload_cbor_hex")?;
+                let expected_hash = decode_hex_required(entry.work_agreement_update_payload_sha256_hex, "work_agreement_update_payload_sha256_hex")?;
+                let digest = sha256(&payload);
+                if digest.as_slice() != expected_hash {
+                    return Err(anyhow!("TV16_WorkAgreementUpdatePayload hash mismatch"));
+                }
+                ensure_roundtrip("TV16_WorkAgreementUpdatePayload", &payload)?;
+                let parsed = decode_canonical(&payload)?;
+                parse_work_agreement_update_payload(&parsed)?;
+            }
+            "TV17_WorkAgreementClosePayload" => {
+                let payload = decode_hex_required(entry.work_agreement_close_payload_cbor_hex, "work_agreement_close_payload_cbor_hex")?;
+                let expected_hash = decode_hex_required(entry.work_agreement_close_payload_sha256_hex, "work_agreement_close_payload_sha256_hex")?;
+                let digest = sha256(&payload);
+                if digest.as_slice() != expected_hash {
+                    return Err(anyhow!("TV17_WorkAgreementClosePayload hash mismatch"));
+                }
+                ensure_roundtrip("TV17_WorkAgreementClosePayload", &payload)?;
+                let parsed = decode_canonical(&payload)?;
+                parse_work_agreement_close_payload(&parsed)?;
+            }
+            "TV18_AgentMailMessage" => {
+                let payload = decode_hex_required(entry.agentmail_payload_cbor_hex, "agentmail_payload_cbor_hex")?;
+                let expected_hash = decode_hex_required(entry.agentmail_payload_sha256_hex, "agentmail_payload_sha256_hex")?;
+                let expected_sig = decode_hex_required(entry.agentmail_signature_hex, "agentmail_signature_hex")?;
+                let digest = sha256(&payload);
+                if digest.as_slice() != expected_hash {
+                    return Err(anyhow!("TV18_AgentMailMessage hash mismatch"));
+                }
+                verify_ed25519_hash(&public_key, &digest, &expected_sig)
+                    .context("TV18_AgentMailMessage signature verify")?;
+                ensure_roundtrip("TV18_AgentMailMessage payload", &payload)?;
+                let parsed = decode_canonical(&payload)?;
+                parse_agentmail_payload(&parsed)?;
+
+                if let Some(full_hex) = entry.agentmail_full_object_cbor_hex.clone() {
+                    let full = hex::decode(&full_hex).context("decode agentmail_full_object_cbor_hex")?;
+                    ensure_roundtrip("TV18_AgentMailMessage full object", &full)?;
+                    let message = parse_agentmail_message(&decode_canonical(&full)?)?;
+                    if message.signature != expected_sig {
+                        return Err(anyhow!("TV18_AgentMailMessage signature mismatch"));
+                    }
+                }
+            }
             _ => {
                 return Err(anyhow!("unknown vector id: {}", entry.id));
             }
@@ -216,4 +471,94 @@ fn ensure_roundtrip(label: &str, cbor: &[u8]) -> Result<()> {
         return Err(anyhow!("{label} canonical roundtrip mismatch"));
     }
     Ok(())
+}
+
+#[derive(Debug)]
+struct KillSwitchParts {
+    action: u8,
+    reason: String,
+    ts: u64,
+    nonce: Vec<u8>,
+    signature: Option<Vec<u8>>,
+}
+
+fn parse_kill_switch_map(value: &CborValue) -> Result<KillSwitchParts> {
+    let entries = match value {
+        CborValue::Map(entries) => entries.clone(),
+        _ => return Err(anyhow!("kill switch map must be cbor map")),
+    };
+    let mut action: Option<u8> = None;
+    let mut reason: Option<String> = None;
+    let mut ts: Option<u64> = None;
+    let mut nonce: Option<Vec<u8>> = None;
+    let mut signature: Option<Vec<u8>> = None;
+
+    for (k, v) in entries {
+        if let CborValue::Unsigned(key) = k {
+            match key {
+                0 => {
+                    if let CborValue::Unsigned(val) = v {
+                        if val <= u8::MAX as u64 {
+                            action = Some(val as u8);
+                        }
+                    }
+                }
+                1 => {
+                    if let CborValue::Text(val) = v {
+                        reason = Some(val);
+                    }
+                }
+                2 => {
+                    if let CborValue::Unsigned(val) = v {
+                        ts = Some(val);
+                    }
+                }
+                3 => {
+                    if let CborValue::Bytes(val) = v {
+                        nonce = Some(val);
+                    }
+                }
+                4 => {
+                    if let CborValue::Bytes(val) = v {
+                        signature = Some(val);
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+
+    Ok(KillSwitchParts {
+        action: action.ok_or_else(|| anyhow!("kill switch action missing"))?,
+        reason: reason.ok_or_else(|| anyhow!("kill switch reason missing"))?,
+        ts: ts.ok_or_else(|| anyhow!("kill switch ts missing"))?,
+        nonce: nonce.ok_or_else(|| anyhow!("kill switch nonce missing"))?,
+        signature,
+    })
+}
+
+fn ensure_kill_switch_parts(label: &str, parts: &KillSwitchParts, require_signature: bool) -> Result<()> {
+    if parts.action > 1 {
+        return Err(anyhow!("{label} invalid action"));
+    }
+    if parts.nonce.len() != 16 {
+        return Err(anyhow!("{label} nonce length invalid"));
+    }
+    if require_signature {
+        match &parts.signature {
+            Some(sig) if sig.len() == 64 => {}
+            Some(_) => return Err(anyhow!("{label} signature length invalid")),
+            None => return Err(anyhow!("{label} signature missing")),
+        }
+    }
+    Ok(())
+}
+
+fn kill_switch_payload_map(parts: &KillSwitchParts) -> CborValue {
+    CborValue::Map(vec![
+        (CborValue::Unsigned(0), CborValue::Unsigned(parts.action as u64)),
+        (CborValue::Unsigned(1), CborValue::Text(parts.reason.clone())),
+        (CborValue::Unsigned(2), CborValue::Unsigned(parts.ts)),
+        (CborValue::Unsigned(3), CborValue::Bytes(parts.nonce.clone())),
+    ])
 }

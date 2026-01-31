@@ -12,3 +12,10 @@ export function verifyEd25519Hash(publicKey, messageHash, signature) {
         throw new Error("invalid signature");
     }
 }
+export function signEd25519Hash(secretKey, messageHash) {
+    if (secretKey.length !== 32 || messageHash.length !== 32) {
+        throw new Error("invalid signature inputs");
+    }
+    const keyPair = nacl.sign.keyPair.fromSeed(secretKey);
+    return nacl.sign.detached(messageHash, keyPair.secretKey);
+}

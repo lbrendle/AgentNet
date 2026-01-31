@@ -1,6 +1,9 @@
 import { readFileSync } from "node:fs";
 import { decodeCanonical, encodeCanonical } from "./cbor.js";
 import { sha256, verifyEd25519Hash } from "./crypto.js";
+import { parseSkillManifestPayload, parseSkillPublishPayload, parseSkillUpdatePayload, parseSkillRevokePayload, verifySkillManifest, } from "./skill.js";
+import { parseWorkOfferPayload, parseWorkAgreementPayload, parseWorkOfferPublishPayload, parseWorkAgreementPublishPayload, parseWorkAgreementUpdatePayload, parseWorkAgreementClosePayload, verifyWorkOffer, verifyWorkAgreement, } from "./work.js";
+import { parseAgentMailPayload, parseAgentMailMessage } from "./agentmail.js";
 function decodeHex(value, field) {
     if (!value)
         throw new Error(`missing ${field}`);
@@ -19,6 +22,78 @@ function verifyHashAndSig(label, publicKey, cborBytes, expectedHash, signature) 
         throw new Error(`${label} hash mismatch`);
     }
     verifyEd25519Hash(publicKey, digest, signature);
+}
+function isCborMapValue(value) {
+    return typeof value === "object" && value !== null && "entries" in value;
+}
+function toBigInt(value) {
+    if (typeof value === "bigint")
+        return value;
+    if (!Number.isInteger(value))
+        throw new Error("invalid integer");
+    return BigInt(value);
+}
+function parseKillSwitchMap(value) {
+    if (!isCborMapValue(value)) {
+        throw new Error("kill switch map must be cbor map");
+    }
+    let action = null;
+    let reason = null;
+    let ts = null;
+    let nonce = null;
+    let signature;
+    for (const [key, val] of value.entries) {
+        if (typeof key !== "number" && typeof key !== "bigint")
+            continue;
+        const keyBig = toBigInt(key);
+        if (keyBig === 0n) {
+            if (typeof val === "number" || typeof val === "bigint") {
+                const valBig = toBigInt(val);
+                if (valBig >= 0n && valBig <= 255n) {
+                    action = valBig;
+                }
+            }
+        }
+        else if (keyBig === 1n && typeof val === "string") {
+            reason = val;
+        }
+        else if (keyBig === 2n) {
+            if (typeof val === "number" || typeof val === "bigint") {
+                const valBig = toBigInt(val);
+                if (valBig >= 0n)
+                    ts = valBig;
+            }
+        }
+        else if (keyBig === 3n && val instanceof Uint8Array) {
+            nonce = val;
+        }
+        else if (keyBig === 4n && val instanceof Uint8Array) {
+            signature = val;
+        }
+    }
+    if (action === null)
+        throw new Error("kill switch action missing");
+    if (reason === null)
+        throw new Error("kill switch reason missing");
+    if (ts === null)
+        throw new Error("kill switch ts missing");
+    if (nonce === null)
+        throw new Error("kill switch nonce missing");
+    return { action, reason, ts, nonce, signature };
+}
+function ensureKillSwitchParts(label, parts, requireSignature) {
+    if (parts.action !== 0n && parts.action !== 1n) {
+        throw new Error(`${label} invalid action`);
+    }
+    if (parts.nonce.length !== 16) {
+        throw new Error(`${label} nonce length invalid`);
+    }
+    if (requireSignature) {
+        if (!parts.signature)
+            throw new Error(`${label} signature missing`);
+        if (parts.signature.length !== 64)
+            throw new Error(`${label} signature length invalid`);
+    }
 }
 function main() {
     const path = process.argv[2];
@@ -93,6 +168,173 @@ function main() {
             const signature = decodeHex(entry.tx_signature_hex, "tx_signature_hex");
             verifyHashAndSig(id, publicKey, payload, expectedHash, signature);
             ensureRoundtrip(id, payload);
+        }
+        else if (id === "TV7_KillSwitch") {
+            const payload = decodeHex(entry.kill_switch_payload_cbor_hex, "kill_switch_payload_cbor_hex");
+            const expectedHash = decodeHex(entry.kill_switch_payload_sha256_hex, "kill_switch_payload_sha256_hex");
+            const signature = decodeHex(entry.kill_switch_signature_hex, "kill_switch_signature_hex");
+            const full = decodeHex(entry.kill_switch_full_object_cbor_hex, "kill_switch_full_object_cbor_hex");
+            verifyHashAndSig(id, publicKey, payload, expectedHash, signature);
+            ensureRoundtrip("TV7_KillSwitch payload", payload);
+            ensureRoundtrip("TV7_KillSwitch full object", full);
+            const payloadValue = decodeCanonical(payload);
+            const payloadParts = parseKillSwitchMap(payloadValue);
+            if (payloadParts.signature) {
+                throw new Error("TV7_KillSwitch payload must not include signature");
+            }
+            ensureKillSwitchParts("TV7_KillSwitch payload", payloadParts, false);
+            const fullValue = decodeCanonical(full);
+            const fullParts = parseKillSwitchMap(fullValue);
+            ensureKillSwitchParts("TV7_KillSwitch full object", fullParts, true);
+            if (!fullParts.signature || Buffer.from(fullParts.signature).compare(Buffer.from(signature)) !== 0) {
+                throw new Error("TV7_KillSwitch signature mismatch");
+            }
+            if (payloadParts.action !== fullParts.action ||
+                payloadParts.reason !== fullParts.reason ||
+                payloadParts.ts !== fullParts.ts ||
+                Buffer.from(payloadParts.nonce).compare(Buffer.from(fullParts.nonce)) !== 0) {
+                throw new Error("TV7_KillSwitch full object fields mismatch");
+            }
+            const reconstructed = encodeCanonical({
+                entries: [
+                    [0n, payloadParts.action],
+                    [1n, payloadParts.reason],
+                    [2n, payloadParts.ts],
+                    [3n, payloadParts.nonce],
+                ],
+            });
+            if (Buffer.from(reconstructed).compare(Buffer.from(payload)) !== 0) {
+                throw new Error("TV7_KillSwitch payload reconstruction mismatch");
+            }
+        }
+        else if (id === "TV8_SkillManifest") {
+            const payload = decodeHex(entry.object_cbor_hex, "object_cbor_hex");
+            const expectedHash = decodeHex(entry.sha256_hex, "sha256_hex");
+            const signature = decodeHex(entry.signature_hex, "signature_hex");
+            verifyHashAndSig(id, publicKey, payload, expectedHash, signature);
+            ensureRoundtrip(id, payload);
+            parseSkillManifestPayload(decodeCanonical(payload));
+            if (entry.skill_manifest_full_object_cbor_hex) {
+                const full = decodeHex(entry.skill_manifest_full_object_cbor_hex, "skill_manifest_full_object_cbor_hex");
+                ensureRoundtrip("TV8_SkillManifest full object", full);
+                verifySkillManifest(full, publicKey);
+            }
+        }
+        else if (id === "TV9_WorkOffer") {
+            const payload = decodeHex(entry.work_offer_payload_cbor_hex, "work_offer_payload_cbor_hex");
+            const expectedHash = decodeHex(entry.work_offer_payload_sha256_hex, "work_offer_payload_sha256_hex");
+            const signature = decodeHex(entry.work_offer_signature_hex, "work_offer_signature_hex");
+            verifyHashAndSig(id, publicKey, payload, expectedHash, signature);
+            ensureRoundtrip(id, payload);
+            parseWorkOfferPayload(decodeCanonical(payload));
+            if (entry.work_offer_full_object_cbor_hex) {
+                const full = decodeHex(entry.work_offer_full_object_cbor_hex, "work_offer_full_object_cbor_hex");
+                ensureRoundtrip("TV9_WorkOffer full object", full);
+                verifyWorkOffer(full, publicKey);
+            }
+        }
+        else if (id === "TV10_WorkAgreement") {
+            const payload = decodeHex(entry.work_agreement_payload_cbor_hex, "work_agreement_payload_cbor_hex");
+            const expectedHash = decodeHex(entry.work_agreement_payload_sha256_hex, "work_agreement_payload_sha256_hex");
+            const signature = decodeHex(entry.work_agreement_signature_hex, "work_agreement_signature_hex");
+            verifyHashAndSig(id, publicKey, payload, expectedHash, signature);
+            ensureRoundtrip(id, payload);
+            parseWorkAgreementPayload(decodeCanonical(payload));
+            if (entry.work_agreement_full_object_cbor_hex) {
+                const full = decodeHex(entry.work_agreement_full_object_cbor_hex, "work_agreement_full_object_cbor_hex");
+                ensureRoundtrip("TV10_WorkAgreement full object", full);
+                verifyWorkAgreement(full, publicKey);
+            }
+        }
+        else if (id === "TV11_SkillPublishPayload") {
+            const payload = decodeHex(entry.skill_publish_payload_cbor_hex, "skill_publish_payload_cbor_hex");
+            const expectedHash = decodeHex(entry.skill_publish_payload_sha256_hex, "skill_publish_payload_sha256_hex");
+            const digest = sha256(payload);
+            if (Buffer.from(digest).compare(Buffer.from(expectedHash)) !== 0) {
+                throw new Error("TV11_SkillPublishPayload hash mismatch");
+            }
+            ensureRoundtrip("TV11_SkillPublishPayload", payload);
+            parseSkillPublishPayload(decodeCanonical(payload));
+        }
+        else if (id === "TV12_SkillUpdatePayload") {
+            const payload = decodeHex(entry.skill_update_payload_cbor_hex, "skill_update_payload_cbor_hex");
+            const expectedHash = decodeHex(entry.skill_update_payload_sha256_hex, "skill_update_payload_sha256_hex");
+            const digest = sha256(payload);
+            if (Buffer.from(digest).compare(Buffer.from(expectedHash)) !== 0) {
+                throw new Error("TV12_SkillUpdatePayload hash mismatch");
+            }
+            ensureRoundtrip("TV12_SkillUpdatePayload", payload);
+            parseSkillUpdatePayload(decodeCanonical(payload));
+        }
+        else if (id === "TV13_SkillRevokePayload") {
+            const payload = decodeHex(entry.skill_revoke_payload_cbor_hex, "skill_revoke_payload_cbor_hex");
+            const expectedHash = decodeHex(entry.skill_revoke_payload_sha256_hex, "skill_revoke_payload_sha256_hex");
+            const digest = sha256(payload);
+            if (Buffer.from(digest).compare(Buffer.from(expectedHash)) !== 0) {
+                throw new Error("TV13_SkillRevokePayload hash mismatch");
+            }
+            ensureRoundtrip("TV13_SkillRevokePayload", payload);
+            parseSkillRevokePayload(decodeCanonical(payload));
+        }
+        else if (id === "TV14_WorkOfferPublishPayload") {
+            const payload = decodeHex(entry.work_offer_publish_payload_cbor_hex, "work_offer_publish_payload_cbor_hex");
+            const expectedHash = decodeHex(entry.work_offer_publish_payload_sha256_hex, "work_offer_publish_payload_sha256_hex");
+            const digest = sha256(payload);
+            if (Buffer.from(digest).compare(Buffer.from(expectedHash)) !== 0) {
+                throw new Error("TV14_WorkOfferPublishPayload hash mismatch");
+            }
+            ensureRoundtrip("TV14_WorkOfferPublishPayload", payload);
+            parseWorkOfferPublishPayload(decodeCanonical(payload));
+        }
+        else if (id === "TV15_WorkAgreementPublishPayload") {
+            const payload = decodeHex(entry.work_agreement_publish_payload_cbor_hex, "work_agreement_publish_payload_cbor_hex");
+            const expectedHash = decodeHex(entry.work_agreement_publish_payload_sha256_hex, "work_agreement_publish_payload_sha256_hex");
+            const digest = sha256(payload);
+            if (Buffer.from(digest).compare(Buffer.from(expectedHash)) !== 0) {
+                throw new Error("TV15_WorkAgreementPublishPayload hash mismatch");
+            }
+            ensureRoundtrip("TV15_WorkAgreementPublishPayload", payload);
+            parseWorkAgreementPublishPayload(decodeCanonical(payload));
+        }
+        else if (id === "TV16_WorkAgreementUpdatePayload") {
+            const payload = decodeHex(entry.work_agreement_update_payload_cbor_hex, "work_agreement_update_payload_cbor_hex");
+            const expectedHash = decodeHex(entry.work_agreement_update_payload_sha256_hex, "work_agreement_update_payload_sha256_hex");
+            const digest = sha256(payload);
+            if (Buffer.from(digest).compare(Buffer.from(expectedHash)) !== 0) {
+                throw new Error("TV16_WorkAgreementUpdatePayload hash mismatch");
+            }
+            ensureRoundtrip("TV16_WorkAgreementUpdatePayload", payload);
+            parseWorkAgreementUpdatePayload(decodeCanonical(payload));
+        }
+        else if (id === "TV17_WorkAgreementClosePayload") {
+            const payload = decodeHex(entry.work_agreement_close_payload_cbor_hex, "work_agreement_close_payload_cbor_hex");
+            const expectedHash = decodeHex(entry.work_agreement_close_payload_sha256_hex, "work_agreement_close_payload_sha256_hex");
+            const digest = sha256(payload);
+            if (Buffer.from(digest).compare(Buffer.from(expectedHash)) !== 0) {
+                throw new Error("TV17_WorkAgreementClosePayload hash mismatch");
+            }
+            ensureRoundtrip("TV17_WorkAgreementClosePayload", payload);
+            parseWorkAgreementClosePayload(decodeCanonical(payload));
+        }
+        else if (id === "TV18_AgentMailMessage") {
+            const payload = decodeHex(entry.agentmail_payload_cbor_hex, "agentmail_payload_cbor_hex");
+            const expectedHash = decodeHex(entry.agentmail_payload_sha256_hex, "agentmail_payload_sha256_hex");
+            const signature = decodeHex(entry.agentmail_signature_hex, "agentmail_signature_hex");
+            const digest = sha256(payload);
+            if (Buffer.from(digest).compare(Buffer.from(expectedHash)) !== 0) {
+                throw new Error("TV18_AgentMailMessage hash mismatch");
+            }
+            verifyEd25519Hash(publicKey, digest, signature);
+            ensureRoundtrip("TV18_AgentMailMessage payload", payload);
+            parseAgentMailPayload(decodeCanonical(payload));
+            if (entry.agentmail_full_object_cbor_hex) {
+                const full = decodeHex(entry.agentmail_full_object_cbor_hex, "agentmail_full_object_cbor_hex");
+                ensureRoundtrip("TV18_AgentMailMessage full object", full);
+                const message = parseAgentMailMessage(decodeCanonical(full));
+                if (Buffer.from(message.signature).compare(Buffer.from(signature)) !== 0) {
+                    throw new Error("TV18_AgentMailMessage signature mismatch");
+                }
+            }
         }
         else {
             throw new Error(`unknown vector id: ${id}`);

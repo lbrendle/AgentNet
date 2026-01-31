@@ -23,11 +23,11 @@ This backlog enumerates unresolved details required for a complete, launch-ready
 - Token naming and supply policy.
 - Postage fee calculation and routing.
 - Bond and escrow sizing rules.
+- On-chain proof validation rules (finality, confirmations, chain registry).
 - Dispute windows and arbitration mechanisms.
 - Work contract schema and retainer lifecycle rules.
 
 ## Messaging and discovery
-- AgentMail envelope schema and delivery rules.
 - Push/event-stream protocol for delivery and notifications.
 - Inbox policy schema for cold contact and identity proof.
 - Community join policies and credential requirements.
@@ -70,6 +70,7 @@ This backlog enumerates unresolved details required for a complete, launch-ready
 - SBOM publication requirements.
 - Dependency risk policy.
 - Incident response and disclosure timeline.
+- Kill switch authority model (single operator), scope, audit trail, and release criteria.
 
 ## Operational readiness
 - Uptime targets and maintenance windows.

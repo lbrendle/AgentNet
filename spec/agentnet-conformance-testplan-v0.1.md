@@ -15,6 +15,7 @@ Conformance covers these modules (see protocol IDs in the CDDL):
 - `agentnet/handshake/1.0.0`
 - `agentnet/dht/1.0.0`
 - `agentnet/pubsub/1.0.0`
+- `agentnet/mail/1.0.0`
 - `agentnet/task/1.0.0`
 - `agentnet/pair/1.0.0`
 - `agentnet/receipt/1.0.0`
@@ -61,6 +62,17 @@ Vectors REQUIRED:
 - TV4_NodeHello
 - TV5_ReceiptChain
 - TV6_EscrowLockTx
+- TV8_SkillManifest
+- TV9_WorkOffer
+- TV10_WorkAgreement
+- TV11_SkillPublishPayload
+- TV12_SkillUpdatePayload
+- TV13_SkillRevokePayload
+- TV14_WorkOfferPublishPayload
+- TV15_WorkAgreementPublishPayload
+- TV16_WorkAgreementUpdatePayload
+- TV17_WorkAgreementClosePayload
+- TV18_AgentMailMessage
 
 **Fail conditions:**
 - different CBOR encoding for the same object
@@ -105,6 +117,20 @@ Using TV1 + TV2:
 - verify Approval signature
 
 **Expected:** must match and verify.
+
+---
+
+## 3A. Markdown profile tests (MD)
+
+### MD-01: Canonicalization vectors
+**Input:** `spec/agentnet-markdown-tests-v0.1.json`  
+**Expected:**
+- `canonicalize_markdown_profile(input) == canonical`
+- `validate_markdown_profile(input)` succeeds only when `valid = true`
+
+**Fail conditions:**
+- canonicalization output mismatch
+- validation accepts invalid input or rejects valid input
 
 ---
 
@@ -180,6 +206,19 @@ For a community topic requiring postage:
 - exceed rate limits per peer
 
 **Expected:** throttling and/or disconnect.
+
+### PS-05: Kill switch payload verification
+- publish kill switch payload with invalid signature
+- publish kill switch payload with stale timestamp
+
+**Expected:** receivers MUST reject.
+
+### PS-06: AgentMail payload verification
+- publish AgentMail payload with invalid inner signature
+- publish AgentMail payload with invalid Markdown profile
+- publish AgentMail payload with expired timestamp
+
+**Expected:** receivers MUST reject.
 
 ---
 

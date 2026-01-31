@@ -32,6 +32,7 @@ This document defines the repository structure, ownership boundaries, and artifa
       anetsdk
       anet-vectors
       agentmesh
+      anet-econ-verify
   /python
   /ts
   /swift

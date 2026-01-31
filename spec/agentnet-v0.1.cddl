@@ -69,6 +69,8 @@ EV_APPROVAL_USED        = 4
 EV_TASK_STATE_CHANGE    = 5
 EV_POLICY_DECISION      = 6
 EV_GOVERNANCE_EVENT     = 7
+EV_SKILL_REGISTRY       = 9
+EV_WORK_REGISTRY        = 10
 
 receipt_event_type =
   EV_ACTION_EXECUTED /
@@ -77,7 +79,9 @@ receipt_event_type =
   EV_APPROVAL_USED /
   EV_TASK_STATE_CHANGE /
   EV_POLICY_DECISION /
-  EV_GOVERNANCE_EVENT
+  EV_GOVERNANCE_EVENT /
+  EV_SKILL_REGISTRY /
+  EV_WORK_REGISTRY
 
 ; AgentChain Tx types (module dispatch)
 TX_IDENTITY_REGISTER   = 10
@@ -87,10 +91,19 @@ TX_CRED_REVOKE         = 12
 TX_TRANSFER            = 20
 TX_POSTAGE             = 21
 
+TX_SKILL_PUBLISH        = 30
+TX_SKILL_UPDATE         = 31
+TX_SKILL_REVOKE         = 32
+
 TX_ESCROW_LOCK         = 40
 TX_ESCROW_RELEASE      = 41
 TX_ESCROW_DISPUTE      = 42
 TX_ESCROW_RESOLVE      = 43
+
+TX_WORK_OFFER_PUBLISH      = 50
+TX_WORK_AGREEMENT_PUBLISH  = 51
+TX_WORK_AGREEMENT_UPDATE   = 52
+TX_WORK_AGREEMENT_CLOSE    = 53
 
 TX_RECEIPT_ANCHOR      = 70
 
@@ -104,10 +117,17 @@ tx_type =
   TX_CRED_REVOKE /
   TX_TRANSFER /
   TX_POSTAGE /
+  TX_SKILL_PUBLISH /
+  TX_SKILL_UPDATE /
+  TX_SKILL_REVOKE /
   TX_ESCROW_LOCK /
   TX_ESCROW_RELEASE /
   TX_ESCROW_DISPUTE /
   TX_ESCROW_RESOLVE /
+  TX_WORK_OFFER_PUBLISH /
+  TX_WORK_AGREEMENT_PUBLISH /
+  TX_WORK_AGREEMENT_UPDATE /
+  TX_WORK_AGREEMENT_CLOSE /
   TX_RECEIPT_ANCHOR /
   TX_GOV_PROPOSAL /
   TX_GOV_VOTE /
@@ -207,6 +227,49 @@ PubSubEnvelopePayload = {
 }
 
 PubSubEnvelope = PubSubEnvelopePayload & { 8: sig64 }
+
+; PubSub payload registry (subset)
+PT_AGENTMAIL = 1000
+PT_KILL_SWITCH = 65535
+
+KillSwitchPayloadUnsigned = {
+  0: u8,        ; action: 0=engage, 1=release
+  1: tstr,      ; reason
+  2: unix_time, ; ts
+  3: nonce16
+}
+
+KillSwitchPayload = KillSwitchPayloadUnsigned & { 4: sig64 }
+
+; -------------------------
+; 3a) AgentMail (agentnet/mail/1.0.0)
+; -------------------------
+
+AgentMailAttachment = {
+  0: hash32,     ; content hash
+  1: u64,        ; size bytes
+  2: tstr,       ; mime
+  ?3: [* multiaddr] ; retrieval hints
+}
+
+AgentMailMessagePayload = {
+  0: u8,         ; version (1)
+  1: id64,       ; message_id
+  2: did,        ; from
+  3: [* did],    ; to (one or more recipients)
+  ?4: id64,      ; thread_id
+  ?5: id64,      ; reply_to
+  ?6: tstr,      ; subject
+  7: tstr,       ; markdown body (exchange profile)
+  ?8: [* AgentMailAttachment],
+  ?9: [* hash32],  ; intent hashes
+  ?10: [* hash32], ; receipt hashes
+  ?11: any,        ; metadata (opaque)
+  12: unix_time, ; ts
+  ?13: unix_time ; expires
+}
+
+AgentMailMessage = AgentMailMessagePayload & { 14: sig64 }
 
 ; -------------------------
 ; 4) Agent-to-Agent Tasks (agentnet/task/1.0.0)
@@ -481,6 +544,124 @@ EscrowResolvePayload = {
   0: id64,   ; escrow_id
   1: u8,     ; outcome: 0=release_to_payee,1=refund_payer,2=split,3=slash
   ?2: u64,   ; split_amount_to_payee (if outcome=split)
+  3: unix_time
+}
+
+; --- Skill module payloads ---
+
+SkillArtifact = {
+  0: u8,      ; kind
+  1: hash32,  ; digest
+  2: u64,     ; size
+  3: [* tstr] ; uris
+}
+
+SkillManifestPayload = {
+  0: id128,        ; skill_id
+  1: did,          ; author
+  2: tstr,         ; name
+  3: tstr,         ; version
+  4: tstr,         ; summary
+  5: tstr,         ; license
+  6: [* tstr],     ; capabilities
+  7: [* tstr],     ; permissions
+  8: u16,          ; sandbox_class
+  ?9: [* tstr],    ; endpoints
+  ?10: [* SkillArtifact], ; artifacts
+  ?11: [* tstr],   ; requirements
+  ?12: any,        ; pricing
+  ?13: any,        ; attestations
+  ?14: any,        ; metadata
+  15: unix_time
+}
+
+SkillManifest = SkillManifestPayload & { 16: sig64 }
+
+SkillPublishPayload = {
+  0: bstr,     ; skill manifest bytes
+  1: unix_time
+}
+
+SkillUpdatePayload = {
+  0: id128,    ; skill_id
+  1: hash32,   ; prev_manifest_hash
+  2: bstr,     ; skill manifest bytes
+  3: unix_time
+}
+
+SkillRevokePayload = {
+  0: id128,    ; skill_id
+  1: hash32,   ; manifest_hash
+  2: tstr,     ; reason
+  3: unix_time
+}
+
+; --- Work module payloads ---
+
+WorkMilestone = {
+  0: id64,     ; milestone_id
+  1: tstr,     ; description
+  2: unix_time,
+  3: u64,      ; amount
+  ?4: hash32   ; deliverable_hash
+}
+
+WorkOfferPayload = {
+  0: id64,     ; offer_id
+  1: did,      ; issuer
+  2: tstr,     ; title
+  3: tstr,     ; summary
+  4: tstr,     ; scope
+  5: u64,      ; budget_amount
+  6: tstr,     ; budget_currency
+  7: u64,      ; duration_sec
+  8: [* tstr], ; deliverables
+  ?9: [* tstr], ; requirements
+  10: unix_time,
+  11: unix_time ; exp
+}
+
+WorkOffer = WorkOfferPayload & { 16: sig64 }
+
+WorkAgreementPayload = {
+  0: id64,     ; agreement_id
+  1: id64,     ; offer_id
+  2: did,      ; issuer
+  3: did,      ; counterparty
+  4: u64,      ; budget_amount
+  5: tstr,     ; budget_currency
+  6: unix_time,
+  7: unix_time,
+  8: [* tstr], ; deliverables
+  ?9: [* WorkMilestone],
+  ?10: id64,   ; escrow_id
+  ?11: any,    ; dispute_policy
+  12: unix_time
+}
+
+WorkAgreement = WorkAgreementPayload & { 16: sig64 }
+
+WorkOfferPublishPayload = {
+  0: bstr,     ; work offer bytes
+  1: unix_time
+}
+
+WorkAgreementPublishPayload = {
+  0: bstr,     ; work agreement bytes
+  1: unix_time
+}
+
+WorkAgreementUpdatePayload = {
+  0: id64,     ; agreement_id
+  1: hash32,   ; prev_agreement_hash
+  2: bstr,     ; work agreement bytes
+  3: unix_time
+}
+
+WorkAgreementClosePayload = {
+  0: id64,     ; agreement_id
+  1: hash32,   ; agreement_hash
+  2: tstr,     ; reason
   3: unix_time
 }
 

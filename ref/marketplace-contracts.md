@@ -67,3 +67,62 @@ This document defines the infra primitives that allow humans and agents to disco
 - Portable reputation derived from receipts enables cross-market hiring.
 - Standardized contract objects enable interoperable marketplaces.
 - Retainer and milestone patterns encourage long-term collaboration.
+
+---
+
+## 7) Canonical Work Offer (CBOR)
+
+Signed WorkOffer (signature key `16`) payload fields:
+
+- `0` offer_id (tstr)
+- `1` issuer (tstr)
+- `2` title (tstr)
+- `3` summary (tstr)
+- `4` scope (tstr)
+- `5` budget_amount (u64)
+- `6` budget_currency (tstr)
+- `7` duration_sec (u64)
+- `8` deliverables (array<tstr>)
+- `9` requirements (array<tstr>, optional)
+- `10` ts (u64)
+- `11` exp (u64)
+
+Validation rules:
+- All required fields must be non-empty.
+- `budget_amount`, `duration_sec`, and `ts` must be > 0.
+- `exp` must be after `ts`.
+- `deliverables` must be non-empty.
+
+---
+
+## 8) Canonical Work Agreement (CBOR)
+
+Signed WorkAgreement (signature key `16`) payload fields:
+
+- `0` agreement_id (tstr)
+- `1` offer_id (tstr)
+- `2` issuer (tstr)
+- `3` counterparty (tstr)
+- `4` budget_amount (u64)
+- `5` budget_currency (tstr)
+- `6` start_ts (u64)
+- `7` end_ts (u64)
+- `8` deliverables (array<tstr>)
+- `9` milestones (array<Milestone>, optional)
+- `10` escrow_id (tstr, optional)
+- `11` dispute_policy (any, optional)
+- `12` ts (u64)
+
+Milestone (CBOR map):
+- `0` milestone_id (tstr)
+- `1` description (tstr)
+- `2` due_ts (u64)
+- `3` amount (u64)
+- `4` deliverable_hash (bytes[32], optional)
+
+Validation rules:
+- All required fields must be non-empty.
+- `budget_amount`, `start_ts`, `end_ts`, `ts` must be > 0.
+- `end_ts` must be after `start_ts`.
+- `deliverables` must be non-empty.
+- If milestones are present, they must be non-empty and valid.

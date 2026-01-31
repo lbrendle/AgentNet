@@ -1,0 +1,60 @@
+{
+  "version": "agentnet-markdown-tests-0.1",
+  "profile": "agentnet/markdown/1.0.0",
+  "cases": [
+    {
+      "id": "MD1_HeadingCanonical",
+      "input": "# Title",
+      "canonical": "# Title",
+      "valid": true
+    },
+    {
+      "id": "MD2_HeadingNeedsCanonical",
+      "input": "##  Title",
+      "canonical": "## Title",
+      "valid": false
+    },
+    {
+      "id": "MD3_ListDash",
+      "input": "- item",
+      "canonical": "- item",
+      "valid": true
+    },
+    {
+      "id": "MD4_ListPlusInvalid",
+      "input": "+ item",
+      "canonical": "",
+      "valid": false
+    },
+    {
+      "id": "MD5_CodeFenceLang",
+      "input": "```rust\nlet x = 1;\n```",
+      "canonical": "```rust\nlet x = 1;\n```",
+      "valid": true
+    },
+    {
+      "id": "MD6_BlockquoteCanonical",
+      "input": "> quote",
+      "canonical": "> quote",
+      "valid": true
+    },
+    {
+      "id": "MD7_BlockquoteNeedsCanonical",
+      "input": ">quote",
+      "canonical": "> quote",
+      "valid": false
+    },
+    {
+      "id": "MD8_LinkHttps",
+      "input": "[site](https://example.com)",
+      "canonical": "[site](https://example.com)",
+      "valid": true
+    },
+    {
+      "id": "MD9_LinkHttpInvalid",
+      "input": "[site](http://example.com)",
+      "canonical": "",
+      "valid": false
+    }
+  ]
+}

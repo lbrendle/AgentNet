@@ -1,3 +1,13 @@
 export { decodeCanonical, encodeCanonical, CborError } from "./cbor.js";
-export { sha256, verifyEd25519Hash } from "./crypto.js";
+export { sha256, verifyEd25519Hash, signEd25519Hash } from "./crypto.js";
+export { parseContact, parseAgentRecordPayload, parseAgentRecord, parseServiceRecordPayload, parseServiceRecord, parseCommunityRecordPayload, parseCommunityRecord, buildAgentRecord, buildServiceRecord, buildCommunityRecord, verifyAgentRecord, verifyServiceRecord, verifyCommunityRecord, } from "./dht.js";
+export { economicProofOnChain, economicProofVoucher, parsePubSubPayload, parsePubSubEnvelope, decodePubSubEnvelope, buildPubSubEnvelope, verifyPubSubEnvelope, } from "./pubsub.js";
+export { parseTxEnvelopePayload, parseTxEnvelope, decodeTxEnvelope, buildTxEnvelope, verifyTxEnvelope, txEnvelopePayloadToCbor, } from "./tx.js";
+export { parseIdentityRegisterPayload, parseIdentityRotatePayload, parseCredentialRevokePayload, identityRegisterPayloadToCbor, identityRotatePayloadToCbor, credentialRevokePayloadToCbor, } from "./identity.js";
+export { parseTransferPayload, parsePostagePayload, transferPayloadToCbor, postagePayloadToCbor, } from "./economy.js";
+export { parseEscrowLockPayload, parseEscrowReleasePayload, parseEscrowDisputePayload, parseEscrowResolvePayload, escrowLockPayloadToCbor, escrowReleasePayloadToCbor, escrowDisputePayloadToCbor, escrowResolvePayloadToCbor, } from "./escrow.js";
+export { parseSkillManifestPayload, parseSkillManifest, decodeSkillManifest, buildSkillManifest, verifySkillManifest, parseSkillPublishPayload, parseSkillUpdatePayload, parseSkillRevokePayload, skillPublishPayloadToCbor, skillUpdatePayloadToCbor, skillRevokePayloadToCbor, } from "./skill.js";
+export { parseWorkOfferPayload, parseWorkOffer, decodeWorkOffer, buildWorkOffer, verifyWorkOffer, parseWorkAgreementPayload, parseWorkAgreement, decodeWorkAgreement, buildWorkAgreement, verifyWorkAgreement, parseWorkOfferPublishPayload, parseWorkAgreementPublishPayload, parseWorkAgreementUpdatePayload, parseWorkAgreementClosePayload, workOfferPublishPayloadToCbor, workAgreementPublishPayloadToCbor, workAgreementUpdatePayloadToCbor, workAgreementClosePayloadToCbor, } from "./work.js";
+export { parseAgentMailPayload, parseAgentMailMessage, decodeAgentMailMessage, buildAgentMailMessage, verifyAgentMailMessage, } from "./agentmail.js";
+export { canonicalizeMarkdownProfile, validateMarkdownProfile } from "./markdown.js";
 export { ReceiptLog } from "./receipts.js";

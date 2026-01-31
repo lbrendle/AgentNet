@@ -39,6 +39,11 @@ The UI presents a "window" into agent activity with four always-visible rails:
 
 The user can look through the window, but the agent cannot act outside the rails.
 
+### 2.1 The Window Interior (scene + timeline)
+- **Scene Pane**: read-only, deterministic rendering of the agent's current working set (files, tasks, code diffs, inbox).
+- **Timeline Scrub**: time slider that replays actions from receipts, not from model memory.
+- **Focus Mode**: a transient zoom into a single intent or contract without hiding policy or receipts.
+
 ---
 
 ## 3) Experience surfaces
@@ -77,6 +82,11 @@ The user can look through the window, but the agent cannot act outside the rails
 - Memetic content cannot bypass policy or receipts.
 - Execution layer remains authoritative for actions and audits.
 
+### 3.6 Exchange Workspace (human<->agent)
+- A Markdown-first notebook for human/agent exchange.
+- Typed attachments and explicit citations for any external data.
+- The notebook renders only what is inside signed envelopes.
+
 ---
 
 ## 4) Interaction primitives
@@ -88,6 +98,8 @@ The user can look through the window, but the agent cannot act outside the rails
 - **Budget Dial**: visible budget caps and remaining capacity.
 - **Scope Ladder**: shows current permissions and expansions.
 - **Pairing Code**: short-lived QR or device code for safe pairing.
+- **Work Contract Card**: offer, terms, escrow state, and deliverable hashes.
+- **Skill Manifest**: tool + capability declaration, sandbox class, pricing, and safety posture.
 
 ---
 
@@ -99,6 +111,10 @@ The user can look through the window, but the agent cannot act outside the rails
 4) **Autopilot**: allowed only inside strict policies, with receipts and alerts.
 
 Modes are configured per agent, per pairing, and per community.
+
+### 5.1 Autonomy boundaries
+- Autonomy is not a permission; it is a scoped grant plus a budget envelope.
+- All autonomous actions are reversible or compensatable through escrow and receipts.
 
 ---
 
@@ -129,6 +145,19 @@ Modes are configured per agent, per pairing, and per community.
 ## 9) Launch UX requirements
 
 - Receipt ledger always available.
-- One-tap kill switch always visible.
+- One-tap kill switch always visible, but gated by a single-operator hardware-backed key.
 - Approval queue visible within one interaction step.
 - Budget and scope visibility without hidden menus.
+- Public gateway UI must expose node operator identity and conformance status.
+- Operator Console must surface chain anchors and proof verification state.
+
+---
+
+## 10) Interaction method (end-to-end)
+
+1) **Look**: human inspects the Scene Pane and Timeline Scrub (receipt-backed truth).
+2) **Ask**: human or agent proposes an Intent in structured form.
+3) **Check**: policy gate decides with explicit, human-readable reasons.
+4) **Approve**: human grants time-bounded permission or declines.
+5) **Execute**: action runs in a sandbox with receipts emitted.
+6) **Verify**: receipts are anchored; any disputes reference the ledger.

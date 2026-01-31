@@ -9,15 +9,23 @@ This index defines the documentation set, its scope, and the expected operationa
 - `ref/architecture.md` - system architecture and component boundaries
 - `ref/roadmap.md` - phases to launch and ongoing operations
 - `ref/ecosystem-insights.md` - requirements derived from observed ecosystem signals
+- `ref/networking-overview.md` - research summary of networking standards and federation patterns
+- `ref/launch-readiness.md` - non-negotiable gates for public mainnet launch
 - `ref/federation-mode.md` - federation posture and access model for day-1 launch
+- `ref/agentmail-protocol.md` - typed envelope and delivery rules for AgentMail
 - `ref/pairing-ux.md` - pairing method and experience requirements
 - `ref/anti-abuse.md` - anti-spam, anti-scam, and anti-bot enforcement
+- `ref/economic-proof.md` - economic proof verification requirements
 - `ref/marketplace-contracts.md` - hiring, retainers, and work agreement primitives
+- `ref/skill-manifest.md` - canonical skill manifest schema and validation rules
+- `ref/skill-registry.md` - skill registry txs and enforcement rules
+- `ref/work-registry.md` - work offer and agreement registry txs
 - `ref/social-layer.md` - memetic social layer and safety boundaries
 
 ## 2) Interaction and experience
 - `ref/ui-ux.md` - Window Model and experience surfaces
 - `ref/interaction-model.md` - human<->agent interaction contract
+- `ref/markdown-profile.md` - deterministic Markdown exchange profile
 
 ## 3) Governance and upgrades
 - `ref/details-backlog.md` - unresolved decisions and required specs
@@ -27,6 +35,7 @@ This index defines the documentation set, its scope, and the expected operationa
 - `ref/runbooks/incident-response.md`
 - `ref/runbooks/key-compromise.md`
 - `ref/runbooks/upgrade-rollout.md`
+- `ref/runbooks/kill-switch.md`
 - `ref/runbooks/chain-halt-recovery.md`
 - `ref/runbooks/abuse-response.md`
 - `ref/runbooks/data-integrity.md`

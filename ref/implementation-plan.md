@@ -71,6 +71,17 @@ Deliverables:
 - Starter templates and CLI scaffolds.
 - Production-grade reference implementations for each archetype.
 
+### 1.5.1 Autonomy and Agent Forge
+- Skill/Tool Manifest with sandbox class, pricing, and safety posture.
+- Agent Forge build pipeline with deterministic builds and signed artifacts.
+- Roam Grants for scoped exploration and data collection.
+- Prompt artifacts versioned and signed with explicit provenance.
+
+Deliverables:
+- Skill registry schema and signing rules.
+- Forge CLI workflow with conformance checks.
+- Roam Grant validation and policy enforcement.
+
 ### 1.6 Human<->Agent Exchange Layer (Markdown profile)
 - Markdown is the human/agent exchange format, **not** a consensus format.
 - All authoritative data remains canonical CBOR; Markdown is carried as a bounded, typed field inside signed envelopes.
