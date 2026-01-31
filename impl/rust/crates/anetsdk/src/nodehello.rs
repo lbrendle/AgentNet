@@ -1,4 +1,8 @@
-use crate::{encode_canonical, sign_ed25519_hash, CborValue, Error, NodeHello};
+use crate::{
+    decode_canonical, encode_canonical, parse_nodehello_payload, sha256, sign_ed25519_hash,
+    verify_ed25519_hash, CborValue, Error, NodeHello,
+};
+use crate::signed::{split_signed_map, with_signature};
 
 #[derive(Debug, Clone)]
 pub struct NodeHelloPayload {
@@ -44,4 +48,30 @@ pub fn payload_from_parsed(node: &NodeHello) -> NodeHelloPayload {
         time: node.time,
         nonce: node.nonce.clone(),
     }
+}
+
+pub fn build_nodehello(payload: &NodeHelloPayload, secret_key: &[u8]) -> Result<Vec<u8>, Error> {
+    let sig = payload.sign(secret_key)?;
+    let payload_cbor = payload.to_cbor();
+    let full = with_signature(&payload_cbor, 8, sig)?;
+    encode_canonical(&full)
+}
+
+pub fn decode_nodehello(data: &[u8]) -> Result<(NodeHelloPayload, Vec<u8>), Error> {
+    let value = decode_canonical(data)?;
+    let (payload_entries, signature) = split_signed_map(&value, 8)?;
+    let payload_value = CborValue::Map(payload_entries);
+    let parsed = parse_nodehello_payload(&payload_value)?;
+    Ok((payload_from_parsed(&parsed), signature))
+}
+
+pub fn verify_nodehello(data: &[u8]) -> Result<NodeHelloPayload, Error> {
+    let value = decode_canonical(data)?;
+    let (payload_entries, signature) = split_signed_map(&value, 8)?;
+    let payload_value = CborValue::Map(payload_entries);
+    let payload_cbor = encode_canonical(&payload_value)?;
+    let hash = sha256(&payload_cbor);
+    let parsed = parse_nodehello_payload(&payload_value)?;
+    verify_ed25519_hash(&parsed.node_pubkey, &hash, &signature)?;
+    Ok(payload_from_parsed(&parsed))
 }
