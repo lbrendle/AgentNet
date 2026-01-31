@@ -3,6 +3,7 @@ use base64::engine::general_purpose::STANDARD as BASE64;
 use base64::Engine;
 use ed25519_dalek::{SigningKey, VerifyingKey};
 use rand::rngs::OsRng;
+use rand::RngCore;
 use std::fs;
 use std::path::Path;
 
@@ -26,7 +27,9 @@ pub fn load_keypair(path: &Path) -> Result<KeyMaterial> {
 
 pub fn generate_keypair() -> KeyMaterial {
     let mut rng = OsRng;
-    let signing_key = SigningKey::generate(&mut rng);
+    let mut secret = [0u8; 32];
+    rng.fill_bytes(&mut secret);
+    let signing_key = SigningKey::from_bytes(&secret);
     let verifying_key = signing_key.verifying_key();
     KeyMaterial { signing_key, verifying_key }
 }

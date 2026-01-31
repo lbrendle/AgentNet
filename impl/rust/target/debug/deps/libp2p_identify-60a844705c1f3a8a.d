@@ -1,0 +1,14 @@
+/Users/ritzai/ritzdesk/projects/agentnet/impl/rust/target/debug/deps/libp2p_identify-60a844705c1f3a8a.d: /Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libp2p-identify-0.44.2/src/lib.rs /Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libp2p-identify-0.44.2/src/behaviour.rs /Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libp2p-identify-0.44.2/src/handler.rs /Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libp2p-identify-0.44.2/src/protocol.rs /Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libp2p-identify-0.44.2/src/generated/mod.rs /Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libp2p-identify-0.44.2/src/generated/structs.rs
+
+/Users/ritzai/ritzdesk/projects/agentnet/impl/rust/target/debug/deps/liblibp2p_identify-60a844705c1f3a8a.rlib: /Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libp2p-identify-0.44.2/src/lib.rs /Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libp2p-identify-0.44.2/src/behaviour.rs /Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libp2p-identify-0.44.2/src/handler.rs /Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libp2p-identify-0.44.2/src/protocol.rs /Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libp2p-identify-0.44.2/src/generated/mod.rs /Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libp2p-identify-0.44.2/src/generated/structs.rs
+
+/Users/ritzai/ritzdesk/projects/agentnet/impl/rust/target/debug/deps/liblibp2p_identify-60a844705c1f3a8a.rmeta: /Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libp2p-identify-0.44.2/src/lib.rs /Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libp2p-identify-0.44.2/src/behaviour.rs /Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libp2p-identify-0.44.2/src/handler.rs /Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libp2p-identify-0.44.2/src/protocol.rs /Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libp2p-identify-0.44.2/src/generated/mod.rs /Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libp2p-identify-0.44.2/src/generated/structs.rs
+
+/Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libp2p-identify-0.44.2/src/lib.rs:
+/Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libp2p-identify-0.44.2/src/behaviour.rs:
+/Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libp2p-identify-0.44.2/src/handler.rs:
+/Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libp2p-identify-0.44.2/src/protocol.rs:
+/Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libp2p-identify-0.44.2/src/generated/mod.rs:
+/Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libp2p-identify-0.44.2/src/generated/structs.rs:
+
+# env-dep:CARGO_PKG_VERSION=0.44.2

@@ -3,6 +3,7 @@ resolver = "2"
 members = [
   "crates/anetsdk",
   "crates/anet-vectors",
+  "crates/agentmesh",
 ]
 
 [workspace.package]

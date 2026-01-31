@@ -1,0 +1,11 @@
+/Users/ritzai/ritzdesk/projects/agentnet/impl/rust/target/debug/deps/multibase-0a437dbb529606d2.d: /Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/multibase-0.9.2/src/lib.rs /Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/multibase-0.9.2/src/base.rs /Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/multibase-0.9.2/src/encoding.rs /Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/multibase-0.9.2/src/error.rs /Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/multibase-0.9.2/src/impls.rs
+
+/Users/ritzai/ritzdesk/projects/agentnet/impl/rust/target/debug/deps/libmultibase-0a437dbb529606d2.rlib: /Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/multibase-0.9.2/src/lib.rs /Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/multibase-0.9.2/src/base.rs /Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/multibase-0.9.2/src/encoding.rs /Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/multibase-0.9.2/src/error.rs /Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/multibase-0.9.2/src/impls.rs
+
+/Users/ritzai/ritzdesk/projects/agentnet/impl/rust/target/debug/deps/libmultibase-0a437dbb529606d2.rmeta: /Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/multibase-0.9.2/src/lib.rs /Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/multibase-0.9.2/src/base.rs /Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/multibase-0.9.2/src/encoding.rs /Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/multibase-0.9.2/src/error.rs /Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/multibase-0.9.2/src/impls.rs
+
+/Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/multibase-0.9.2/src/lib.rs:
+/Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/multibase-0.9.2/src/base.rs:
+/Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/multibase-0.9.2/src/encoding.rs:
+/Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/multibase-0.9.2/src/error.rs:
+/Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/multibase-0.9.2/src/impls.rs:

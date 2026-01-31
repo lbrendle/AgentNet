@@ -1,0 +1,11 @@
+/Users/ritzai/ritzdesk/projects/agentnet/impl/rust/target/debug/deps/base_x-6260afcd2cb646cd.d: /Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/base-x-0.2.11/src/lib.rs /Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/base-x-0.2.11/src/alphabet.rs /Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/base-x-0.2.11/src/bigint.rs /Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/base-x-0.2.11/src/decoder.rs /Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/base-x-0.2.11/src/encoder.rs
+
+/Users/ritzai/ritzdesk/projects/agentnet/impl/rust/target/debug/deps/libbase_x-6260afcd2cb646cd.rlib: /Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/base-x-0.2.11/src/lib.rs /Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/base-x-0.2.11/src/alphabet.rs /Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/base-x-0.2.11/src/bigint.rs /Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/base-x-0.2.11/src/decoder.rs /Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/base-x-0.2.11/src/encoder.rs
+
+/Users/ritzai/ritzdesk/projects/agentnet/impl/rust/target/debug/deps/libbase_x-6260afcd2cb646cd.rmeta: /Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/base-x-0.2.11/src/lib.rs /Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/base-x-0.2.11/src/alphabet.rs /Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/base-x-0.2.11/src/bigint.rs /Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/base-x-0.2.11/src/decoder.rs /Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/base-x-0.2.11/src/encoder.rs
+
+/Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/base-x-0.2.11/src/lib.rs:
+/Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/base-x-0.2.11/src/alphabet.rs:
+/Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/base-x-0.2.11/src/bigint.rs:
+/Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/base-x-0.2.11/src/decoder.rs:
+/Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/base-x-0.2.11/src/encoder.rs:

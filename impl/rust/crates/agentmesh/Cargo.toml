@@ -7,10 +7,12 @@ license.workspace = true
 [dependencies]
 anetsdk = { path = "../anetsdk" }
 anyhow = "1"
+async-trait = "0.1"
 base64 = "0.22"
 clap = { version = "4", features = ["derive"] }
 ed25519-dalek = { version = "2", features = ["std"] }
-libp2p = { version = "0.53", features = ["dns", "gossipsub", "identify", "kad", "quic", "request-response", "tokio"] }
+futures = "0.3"
+libp2p = { version = "0.53", features = ["dns", "ed25519", "gossipsub", "identify", "kad", "macros", "quic", "request-response", "tokio"] }
 rand = "0.8"
 serde = { version = "1", features = ["derive"] }
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "signal"] }

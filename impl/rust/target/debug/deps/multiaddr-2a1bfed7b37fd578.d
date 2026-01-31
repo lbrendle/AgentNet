@@ -1,0 +1,11 @@
+/Users/ritzai/ritzdesk/projects/agentnet/impl/rust/target/debug/deps/multiaddr-2a1bfed7b37fd578.d: /Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/multiaddr-0.18.2/src/lib.rs /Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/multiaddr-0.18.2/src/errors.rs /Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/multiaddr-0.18.2/src/onion_addr.rs /Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/multiaddr-0.18.2/src/protocol.rs /Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/multiaddr-0.18.2/src/from_url.rs
+
+/Users/ritzai/ritzdesk/projects/agentnet/impl/rust/target/debug/deps/libmultiaddr-2a1bfed7b37fd578.rlib: /Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/multiaddr-0.18.2/src/lib.rs /Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/multiaddr-0.18.2/src/errors.rs /Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/multiaddr-0.18.2/src/onion_addr.rs /Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/multiaddr-0.18.2/src/protocol.rs /Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/multiaddr-0.18.2/src/from_url.rs
+
+/Users/ritzai/ritzdesk/projects/agentnet/impl/rust/target/debug/deps/libmultiaddr-2a1bfed7b37fd578.rmeta: /Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/multiaddr-0.18.2/src/lib.rs /Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/multiaddr-0.18.2/src/errors.rs /Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/multiaddr-0.18.2/src/onion_addr.rs /Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/multiaddr-0.18.2/src/protocol.rs /Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/multiaddr-0.18.2/src/from_url.rs
+
+/Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/multiaddr-0.18.2/src/lib.rs:
+/Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/multiaddr-0.18.2/src/errors.rs:
+/Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/multiaddr-0.18.2/src/onion_addr.rs:
+/Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/multiaddr-0.18.2/src/protocol.rs:
+/Users/ritzai/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/multiaddr-0.18.2/src/from_url.rs:
