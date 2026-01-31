@@ -6,8 +6,10 @@ import json
 import os
 import subprocess
 import sys
+import threading
 import time
 from pathlib import Path
+from urllib import request as urllib_request
 
 
 def fail(message: str) -> None:
@@ -185,6 +187,26 @@ def read_peer_id(key_path: Path) -> str:
     if not peer_id:
         fail("agentmesh peer-id returned empty output")
     return peer_id
+
+
+def post_json(url: str, payload: dict) -> None:
+    data = json.dumps(payload).encode("utf-8")
+    req = urllib_request.Request(url, data=data, headers={"Content-Type": "application/json"})
+    with urllib_request.urlopen(req, timeout=10) as resp:
+        if resp.status < 200 or resp.status >= 300:
+            raise RuntimeError(f"unexpected status {resp.status}")
+
+
+def publish_mesh_info(base_url: str, payload: dict, attempts: int = 60, delay_sec: int = 5) -> None:
+    url = f"{base_url.rstrip('/')}/ingest/mesh_info"
+    for attempt in range(1, attempts + 1):
+        try:
+            post_json(url, payload)
+            print("[agentmesh-entrypoint] published mesh info to agentindex")
+            return
+        except Exception as exc:  # pylint: disable=broad-except
+            print(f"[agentmesh-entrypoint] mesh info publish failed (attempt {attempt}): {exc}")
+            time.sleep(delay_sec)
 
 
 def compute_agent_did(pubkey_hex: str) -> str:
@@ -418,6 +440,13 @@ def main() -> None:
     mesh_info_path = state_dir / "mesh_info.json"
     mesh_info_path.write_text(json.dumps(mesh_info))
     print(f"[agentmesh-entrypoint] wrote mesh info to {mesh_info_path}")
+
+    agentindex_url = env_optional("AGENTINDEX_URL")
+    if agentindex_url:
+        thread = threading.Thread(
+            target=publish_mesh_info, args=(agentindex_url, mesh_info), daemon=True
+        )
+        thread.start()
 
     config_path = Path(env_optional("AGENTMESH_CONFIG_PATH", "/var/lib/agentnet/config/agentmesh.toml"))
     config_path.parent.mkdir(parents=True, exist_ok=True)
