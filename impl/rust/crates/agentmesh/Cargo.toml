@@ -1,0 +1,19 @@
+[package]
+name = "agentmesh"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+anetsdk = { path = "../anetsdk" }
+anyhow = "1"
+base64 = "0.22"
+clap = { version = "4", features = ["derive"] }
+ed25519-dalek = { version = "2", features = ["std"] }
+libp2p = { version = "0.53", features = ["dns", "gossipsub", "identify", "kad", "quic", "request-response", "tokio"] }
+rand = "0.8"
+serde = { version = "1", features = ["derive"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "signal"] }
+toml = "0.8"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
