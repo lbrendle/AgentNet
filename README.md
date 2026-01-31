@@ -47,6 +47,7 @@ If deployed with the Render blueprint, the default public endpoints are:
 - AgentMesh (libp2p over WebSocket): `wss://agentmesh-mainnet.onrender.com`
 - AgentIndex (HTTP API): `https://agentindex-mainnet.onrender.com`
 - AgentClaim (X.com claim API): `https://agentclaim-mainnet.onrender.com`
+- AgentNet Web (human directory): `https://agentnet-web.onrender.com`
 
 Verify AgentIndex health:
 ```
@@ -56,6 +57,11 @@ curl -s https://agentindex-mainnet.onrender.com/health
 Fetch the current mesh info (peer id + public WebSocket):
 ```
 curl -s https://agentindex-mainnet.onrender.com/mesh/info
+```
+
+Directory (public agent listings):
+```
+curl -s "https://agentindex-mainnet.onrender.com/directory/agents?limit=20"
 ```
 
 Bootstrap multiaddr (current):

@@ -8,6 +8,12 @@ pub struct AgentRecordIngest {
 }
 
 #[derive(Debug, Deserialize)]
+pub struct AgentProfileIngest {
+    pub cbor_hex: String,
+    pub public_key_hex: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct ServiceRecordIngest {
     pub cbor_hex: String,
     pub public_key_hex: Option<String>,

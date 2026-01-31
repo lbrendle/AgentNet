@@ -5,9 +5,9 @@ use crate::state::{
 };
 use crate::util::cbor_to_json_value;
 use anetsdk::{
-    sha256, verify_skill_manifest, verify_work_agreement, verify_work_offer, AgentRecordPayload,
-    CommunityRecordPayload, ReceiptPayload, ServiceRecordPayload, SkillManifestPayload,
-    WorkAgreementPayload, WorkOfferPayload,
+    sha256, verify_skill_manifest, verify_work_agreement, verify_work_offer, AgentProfilePayload,
+    AgentRecordPayload, CommunityRecordPayload, ReceiptPayload, ServiceRecordPayload,
+    SkillManifestPayload, WorkAgreementPayload, WorkOfferPayload,
 };
 use anyhow::{anyhow, Context, Result};
 use rusqlite::{params, params_from_iter, Connection, OptionalExtension};
@@ -53,6 +53,30 @@ impl IndexDb {
 
             CREATE VIRTUAL TABLE IF NOT EXISTS agents_fts
             USING fts5(agent_id, capabilities);
+
+            CREATE TABLE IF NOT EXISTS agent_profiles (
+                agent_id TEXT PRIMARY KEY,
+                display_name TEXT NOT NULL,
+                summary TEXT NOT NULL,
+                tags_json TEXT NOT NULL,
+                capabilities_json TEXT NOT NULL,
+                links_json TEXT,
+                visibility INTEGER NOT NULL,
+                expires INTEGER NOT NULL,
+                record_hex TEXT NOT NULL,
+                updated_at INTEGER NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS idx_agent_profiles_visibility ON agent_profiles(visibility);
+
+            CREATE TABLE IF NOT EXISTS agent_profile_caps (
+                agent_id TEXT NOT NULL,
+                cap TEXT NOT NULL,
+                UNIQUE(agent_id, cap)
+            );
+            CREATE INDEX IF NOT EXISTS idx_agent_profile_caps_cap ON agent_profile_caps(cap);
+
+            CREATE VIRTUAL TABLE IF NOT EXISTS agent_profiles_fts
+            USING fts5(agent_id, display_name, summary, tags, capabilities);
 
             CREATE TABLE IF NOT EXISTS services (
                 service_key TEXT NOT NULL UNIQUE,
@@ -230,6 +254,14 @@ impl IndexDb {
         let identities: u64 =
             self.conn
                 .query_row("SELECT COUNT(*) FROM identities", [], |row| row.get(0))?;
+        let profiles: u64 =
+            self.conn
+                .query_row("SELECT COUNT(*) FROM agent_profiles", [], |row| row.get(0))?;
+        let public_profiles: u64 = self.conn.query_row(
+            "SELECT COUNT(*) FROM agent_profiles WHERE visibility = 1 AND expires > ?",
+            params![now_ts()],
+            |row| row.get(0),
+        )?;
         Ok(json!({
             "agents": agents,
             "services": services,
@@ -238,6 +270,8 @@ impl IndexDb {
             "work_agreements": work_agreements,
             "receipts": receipts,
             "identities": identities,
+            "agent_profiles": profiles,
+            "public_profiles": public_profiles,
         }))
     }
 
@@ -458,6 +492,67 @@ impl IndexDb {
         self.conn.execute(
             "INSERT INTO agents_fts (agent_id, capabilities) VALUES (?, ?)",
             params![payload.agent_id, caps_text],
+        )?;
+        Ok(())
+    }
+
+    pub fn upsert_agent_profile(
+        &mut self,
+        payload: &AgentProfilePayload,
+        record_hex: &str,
+        now: u64,
+    ) -> Result<()> {
+        let tags_json = serde_json::to_string(&payload.tags)?;
+        let caps_json = serde_json::to_string(&payload.capabilities)?;
+        let links_json = match &payload.links {
+            Some(list) => Some(serde_json::to_string(list)?),
+            None => None,
+        };
+        self.conn.execute(
+            "INSERT OR REPLACE INTO agent_profiles
+             (agent_id, display_name, summary, tags_json, capabilities_json, links_json, visibility, expires, record_hex, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            params![
+                payload.agent_id,
+                payload.display_name,
+                payload.summary,
+                tags_json,
+                caps_json,
+                links_json,
+                payload.visibility as u64,
+                payload.expires,
+                record_hex,
+                now
+            ],
+        )?;
+        self.conn.execute(
+            "DELETE FROM agent_profile_caps WHERE agent_id = ?",
+            params![payload.agent_id],
+        )?;
+        {
+            let mut stmt = self.conn.prepare(
+                "INSERT OR IGNORE INTO agent_profile_caps (agent_id, cap) VALUES (?, ?)",
+            )?;
+            for cap in &payload.capabilities {
+                stmt.execute(params![payload.agent_id, cap])?;
+            }
+        }
+        self.conn.execute(
+            "DELETE FROM agent_profiles_fts WHERE agent_id = ?",
+            params![payload.agent_id],
+        )?;
+        let tags_text = payload.tags.join(" ");
+        let caps_text = payload.capabilities.join(" ");
+        self.conn.execute(
+            "INSERT INTO agent_profiles_fts (agent_id, display_name, summary, tags, capabilities)
+             VALUES (?, ?, ?, ?, ?)",
+            params![
+                payload.agent_id,
+                payload.display_name,
+                payload.summary,
+                tags_text,
+                caps_text
+            ],
         )?;
         Ok(())
     }
@@ -683,6 +778,57 @@ impl IndexDb {
                 "node_ids": parse_json_value(node_ids_json),
                 "addrs": parse_json_value(addrs_json),
                 "capabilities": parse_json_value(caps_json),
+                "expires": expires,
+            }))
+        })?;
+        collect_rows(rows)
+    }
+
+    pub fn search_agent_profiles(&self, query: &SearchQuery) -> Result<Vec<Value>> {
+        let (limit, offset) = limit_offset(query);
+        let mut sql = String::from(
+            "SELECT p.agent_id, p.display_name, p.summary, p.tags_json, p.capabilities_json,
+                    p.links_json, p.visibility, p.expires
+             FROM agent_profiles p",
+        );
+        let mut conditions = Vec::new();
+        let mut params_vec: Vec<rusqlite::types::Value> = Vec::new();
+        if let Some(q) = query.q.as_ref().filter(|q| !q.trim().is_empty()) {
+            sql.push_str(" JOIN agent_profiles_fts f ON p.agent_id = f.agent_id");
+            conditions.push("f MATCH ?");
+            params_vec.push(q.to_string().into());
+        }
+        if let Some(cap) = query.capability.as_ref().filter(|c| !c.trim().is_empty()) {
+            conditions.push(
+                "EXISTS (SELECT 1 FROM agent_profile_caps c WHERE c.agent_id = p.agent_id AND c.cap = ?)",
+            );
+            params_vec.push(cap.to_string().into());
+        }
+        conditions.push("p.visibility = 1");
+        conditions.push("p.expires > ?");
+        params_vec.push((now_ts() as i64).into());
+        apply_conditions(&mut sql, &conditions);
+        sql.push_str(" ORDER BY p.updated_at DESC LIMIT ? OFFSET ?");
+        params_vec.push((limit as i64).into());
+        params_vec.push((offset as i64).into());
+        let mut stmt = self.conn.prepare(&sql)?;
+        let rows = stmt.query_map(params_from_iter(params_vec.iter()), |row| {
+            let agent_id: String = row.get(0)?;
+            let display_name: String = row.get(1)?;
+            let summary: String = row.get(2)?;
+            let tags_json: String = row.get(3)?;
+            let caps_json: String = row.get(4)?;
+            let links_json: Option<String> = row.get(5)?;
+            let visibility: u64 = row.get(6)?;
+            let expires: u64 = row.get(7)?;
+            Ok(json!({
+                "agent_id": agent_id,
+                "display_name": display_name,
+                "summary": summary,
+                "tags": parse_json_value(tags_json),
+                "capabilities": parse_json_value(caps_json),
+                "links": parse_optional_json(links_json),
+                "visibility": visibility,
                 "expires": expires,
             }))
         })?;

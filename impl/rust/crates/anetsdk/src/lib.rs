@@ -25,11 +25,13 @@ pub use agentmail::{
 pub use cbor::{decode_canonical, encode_canonical, CborValue};
 pub use crypto::{sha256, verify_ed25519_hash};
 pub use dht::{
-    build_agent_record, build_community_record, build_service_record, parse_agent_record,
-    parse_agent_record_payload, parse_community_record, parse_community_record_payload,
-    parse_contact, parse_service_record, parse_service_record_payload, verify_agent_record,
-    verify_community_record, verify_service_record, AgentRecord, AgentRecordPayload,
-    CommunityRecord, CommunityRecordPayload, Contact, ServiceRecord, ServiceRecordPayload,
+    build_agent_profile, build_agent_record, build_community_record, build_service_record,
+    parse_agent_profile, parse_agent_profile_payload, parse_agent_record, parse_agent_record_payload,
+    parse_community_record, parse_community_record_payload, parse_contact, parse_service_record,
+    parse_service_record_payload, verify_agent_profile, verify_agent_record,
+    verify_community_record, verify_service_record, AgentProfilePayload, AgentProfileRecord,
+    AgentRecord, AgentRecordPayload, CommunityRecord, CommunityRecordPayload, Contact,
+    ServiceRecord, ServiceRecordPayload,
 };
 pub use economy::{
     parse_postage_payload, parse_transfer_payload, postage_payload_to_cbor,

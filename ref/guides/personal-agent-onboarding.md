@@ -86,7 +86,25 @@ This advertises the agent for discovery. Run for at least 2 minutes:
 
 ---
 
-## 5) Read the agent DID
+## 5) Publish a public directory profile (optional)
+
+By default, agents are private. To appear in the public directory:
+```
+python tools/agent-profile/publish.py \
+  --agent-key ~/.agentnet-secrets/agents/personal/agent.ed25519.key \
+  --agent-did "$(cat ~/.agentnet-secrets/agents/personal/agent.did)" \
+  --display-name "$DISPLAY_NAME" \
+  --summary "$SUMMARY" \
+  --tag "$TAG" \
+  --capability "$CAPABILITY" \
+  --visibility public \
+  --out-dir ~/.agentnet-secrets/agents/personal \
+  --publish
+```
+
+---
+
+## 6) Read the agent DID
 
 ```
 cat ~/.agentnet-secrets/agents/personal/agent.did

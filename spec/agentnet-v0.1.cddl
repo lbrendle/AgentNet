@@ -203,6 +203,23 @@ CommunityRecordPayload = {
 CommunityRecord = CommunityRecordPayload & { 7: sig64 }
 
 ; -------------------------
+; 3) Directory Records (agentnet/directory/1.0.0)
+; -------------------------
+
+AgentProfilePayload = {
+  0: did,          ; agent_id
+  1: tstr,         ; display_name
+  2: tstr,         ; summary
+  3: [* tstr],     ; tags
+  4: [* tstr],     ; capabilities
+  ?5: [* tstr],    ; links
+  6: u8,           ; visibility: 0=private, 1=public
+  7: unix_time     ; expires
+}
+
+AgentProfileRecord = AgentProfilePayload & { 8: sig64 }
+
+; -------------------------
 ; 3) PubSub (agentnet/pubsub/1.0.0)
 ; -------------------------
 

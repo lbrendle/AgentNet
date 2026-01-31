@@ -62,6 +62,24 @@ pub struct CommunityRecord {
     pub signature: Vec<u8>,
 }
 
+#[derive(Debug, Clone)]
+pub struct AgentProfilePayload {
+    pub agent_id: String,
+    pub display_name: String,
+    pub summary: String,
+    pub tags: Vec<String>,
+    pub capabilities: Vec<String>,
+    pub links: Option<Vec<String>>,
+    pub visibility: u8,
+    pub expires: u64,
+}
+
+#[derive(Debug, Clone)]
+pub struct AgentProfileRecord {
+    pub payload: AgentProfilePayload,
+    pub signature: Vec<u8>,
+}
+
 pub fn parse_contact(value: &CborValue) -> Result<Contact, Error> {
     let map = expect_map(value)?;
     Ok(Contact {
@@ -134,6 +152,31 @@ pub fn parse_community_record(value: &CborValue) -> Result<CommunityRecord, Erro
     let payload_value = CborValue::Map(payload_entries);
     let payload = parse_community_record_payload(&payload_value)?;
     Ok(CommunityRecord { payload, signature })
+}
+
+pub fn parse_agent_profile_payload(value: &CborValue) -> Result<AgentProfilePayload, Error> {
+    let map = expect_map(value)?;
+    let links = match get_optional(&map, 5) {
+        Some(value) => Some(expect_text_array(value)?),
+        None => None,
+    };
+    Ok(AgentProfilePayload {
+        agent_id: expect_text(get_required(&map, 0)?)?,
+        display_name: expect_text(get_required(&map, 1)?)?,
+        summary: expect_text(get_required(&map, 2)?)?,
+        tags: expect_text_array(get_required(&map, 3)?)?,
+        capabilities: expect_text_array(get_required(&map, 4)?)?,
+        links,
+        visibility: expect_u8(get_required(&map, 6)?)?,
+        expires: expect_u64(get_required(&map, 7)?)?,
+    })
+}
+
+pub fn parse_agent_profile(value: &CborValue) -> Result<AgentProfileRecord, Error> {
+    let (payload_entries, signature) = split_signed_map(value, 8)?;
+    let payload_value = CborValue::Map(payload_entries);
+    let payload = parse_agent_profile_payload(&payload_value)?;
+    Ok(AgentProfileRecord { payload, signature })
 }
 
 impl Contact {
@@ -264,6 +307,56 @@ impl CommunityRecordPayload {
     }
 }
 
+impl AgentProfilePayload {
+    pub fn to_cbor(&self) -> CborValue {
+        let mut entries = Vec::new();
+        entries.push((
+            CborValue::Unsigned(0),
+            CborValue::Text(self.agent_id.clone()),
+        ));
+        entries.push((
+            CborValue::Unsigned(1),
+            CborValue::Text(self.display_name.clone()),
+        ));
+        entries.push((
+            CborValue::Unsigned(2),
+            CborValue::Text(self.summary.clone()),
+        ));
+        entries.push((
+            CborValue::Unsigned(3),
+            CborValue::Array(
+                self.tags
+                    .iter()
+                    .map(|s| CborValue::Text(s.clone()))
+                    .collect(),
+            ),
+        ));
+        entries.push((
+            CborValue::Unsigned(4),
+            CborValue::Array(
+                self.capabilities
+                    .iter()
+                    .map(|s| CborValue::Text(s.clone()))
+                    .collect(),
+            ),
+        ));
+        if let Some(links) = &self.links {
+            entries.push((
+                CborValue::Unsigned(5),
+                CborValue::Array(
+                    links.iter().map(|s| CborValue::Text(s.clone())).collect(),
+                ),
+            ));
+        }
+        entries.push((
+            CborValue::Unsigned(6),
+            CborValue::Unsigned(self.visibility as u64),
+        ));
+        entries.push((CborValue::Unsigned(7), CborValue::Unsigned(self.expires)));
+        CborValue::Map(entries)
+    }
+}
+
 pub fn build_agent_record(
     payload: &AgentRecordPayload,
     secret_key: &[u8],
@@ -301,6 +394,20 @@ pub fn verify_community_record(
     public_key: &[u8],
 ) -> Result<CommunityRecordPayload, Error> {
     verify_signed_record(data, 7, public_key, parse_community_record_payload)
+}
+
+pub fn build_agent_profile(
+    payload: &AgentProfilePayload,
+    secret_key: &[u8],
+) -> Result<Vec<u8>, Error> {
+    build_signed_record(payload.to_cbor(), 8, secret_key)
+}
+
+pub fn verify_agent_profile(
+    data: &[u8],
+    public_key: &[u8],
+) -> Result<AgentProfilePayload, Error> {
+    verify_signed_record(data, 8, public_key, parse_agent_profile_payload)
 }
 
 fn build_signed_record(

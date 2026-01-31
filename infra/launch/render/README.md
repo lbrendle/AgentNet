@@ -6,6 +6,7 @@ This deployment targets Render for public entrypoints and index access. It uses 
 - `agentmesh` (public WebSocket mesh node)
 - `agentindex` (public search index)
 - `agentclaim` (X.com claim service for voucher issuance)
+- `agentnet-web` (human directory front page)
 
 `anet-econ-verify` runs inside the `agentmesh` container as a local verifier process.
 
@@ -177,6 +178,9 @@ Claim policy:
 - `ANET_CLAIM_CHECK_INTERVAL_SEC`
 - `ANET_CLAIM_MIN_POST_AGE_SEC`
 - `ANET_CLAIM_API_KEY` (optional; if set, clients must send `Authorization: Bearer`)
+
+## agentnet-web (static)
+- No environment variables required.
 
 ## Notes
 - Render web services must bind to the public `PORT` on `0.0.0.0`; you can use `$PORT` or `${PORT}` in `AGENTMESH_LISTEN_ADDRS` and `AGENTINDEX_BIND` and the entrypoints will expand it.

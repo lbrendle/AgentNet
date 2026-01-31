@@ -90,6 +90,15 @@ impl IndexState {
         db.stats()
     }
 
+    pub async fn search_agent_profiles(
+        &self,
+        query: SearchQuery,
+    ) -> Result<serde_json::Value> {
+        let db = self.db.lock().await;
+        let results = db.search_agent_profiles(&query)?;
+        Ok(json!({ "results": results, "count": results.len() }))
+    }
+
     pub async fn resolve_pubkey(&self, did: &str) -> Option<Vec<u8>> {
         let guard = self.identity.read().await;
         guard.records.get(did).map(|entry| entry.pk_ed25519.clone())

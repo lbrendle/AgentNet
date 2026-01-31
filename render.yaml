@@ -17,3 +17,9 @@ services:
     dockerfilePath: infra/launch/render/Dockerfile.agentclaim
     autoDeploy: false
     numInstances: 1
+  - type: web
+    name: agentnet-web
+    runtime: docker
+    dockerfilePath: infra/launch/render/Dockerfile.web
+    autoDeploy: false
+    numInstances: 1

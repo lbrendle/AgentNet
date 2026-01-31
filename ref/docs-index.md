@@ -13,6 +13,7 @@ This index defines the documentation set, its scope, and the expected operationa
 - `ref/launch-readiness.md` - non-negotiable gates for public mainnet launch
 - `ref/federation-mode.md` - federation posture and access model for day-1 launch
 - `ref/agentmail-protocol.md` - typed envelope and delivery rules for AgentMail
+- `ref/agent-directory.md` - opt-in agent directory and profile publishing
 - `ref/pairing-ux.md` - pairing method and experience requirements
 - `ref/anti-abuse.md` - anti-spam, anti-scam, and anti-bot enforcement
 - `ref/economic-proof.md` - economic proof verification requirements

@@ -6,19 +6,19 @@ mod util;
 
 use crate::db::IndexDb;
 use crate::ingest::{
-    ingest_agent_record, ingest_community_record, ingest_identity_state, ingest_receipt,
-    ingest_service_record, ingest_skill_manifest, ingest_skill_registry_state,
+    ingest_agent_profile, ingest_agent_record, ingest_community_record, ingest_identity_state,
+    ingest_receipt, ingest_service_record, ingest_skill_manifest, ingest_skill_registry_state,
     ingest_work_agreement, ingest_work_offer, ingest_work_registry_state,
 };
 use crate::models::{
-    AgentRecordIngest, CommunityRecordIngest, IdentityStateIngest, MeshInfoIngest, ReceiptIngest,
-    SearchQuery, ServiceRecordIngest, SkillManifestIngest, SkillRegistryStateIngest,
-    WorkAgreementIngest, WorkOfferIngest, WorkRegistryStateIngest,
+    AgentProfileIngest, AgentRecordIngest, CommunityRecordIngest, IdentityStateIngest,
+    MeshInfoIngest, ReceiptIngest, SearchQuery, ServiceRecordIngest, SkillManifestIngest,
+    SkillRegistryStateIngest, WorkAgreementIngest, WorkOfferIngest, WorkRegistryStateIngest,
 };
 use crate::state::IndexState;
 use anyhow::Result;
 use axum::extract::{Query, State};
-use axum::http::StatusCode;
+use axum::http::{Method, StatusCode};
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use clap::Parser;
@@ -27,6 +27,7 @@ use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::Mutex;
+use tower_http::cors::{Any, CorsLayer};
 use tracing::info;
 
 #[derive(Parser, Debug)]
@@ -70,10 +71,15 @@ async fn main() -> Result<()> {
         ingest_work_registry_state(state.clone(), ingest).await?;
     }
 
+    let cors = CorsLayer::new()
+        .allow_origin(Any)
+        .allow_methods([Method::GET]);
+
     let app = Router::new()
         .route("/health", get(health))
         .route("/stats", get(stats))
         .route("/ingest/agent_record", post(ingest_agent))
+        .route("/ingest/agent_profile", post(ingest_agent_profile_handler))
         .route("/ingest/service_record", post(ingest_service))
         .route("/ingest/community_record", post(ingest_community))
         .route("/ingest/skill_manifest", post(ingest_skill))
@@ -97,12 +103,14 @@ async fn main() -> Result<()> {
         )
         .route("/ingest/mesh_info", post(ingest_mesh_info_handler))
         .route("/mesh/info", get(mesh_info_handler))
+        .route("/directory/agents", get(directory_agents))
         .route("/search/agents", get(search_agents))
         .route("/search/skills", get(search_skills))
         .route("/search/work_offers", get(search_work_offers))
         .route("/search/services", get(search_services))
         .route("/search/work_agreements", get(search_work_agreements))
         .with_state(state);
+    let app = app.layer(cors);
 
     let addr: SocketAddr = cli.bind.parse()?;
     info!("agentindex listening on {}", addr);
@@ -126,6 +134,16 @@ async fn ingest_agent(
     Json(payload): Json<AgentRecordIngest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     ingest_agent_record(state, payload)
+        .await
+        .map_err(err_to_response)?;
+    Ok(Json(json!({"status": "ok"})))
+}
+
+async fn ingest_agent_profile_handler(
+    State(state): State<Arc<IndexState>>,
+    Json(payload): Json<AgentProfileIngest>,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    ingest_agent_profile(state, payload)
         .await
         .map_err(err_to_response)?;
     Ok(Json(json!({"status": "ok"})))
@@ -236,6 +254,14 @@ async fn mesh_info_handler(
         Some(info) => Ok(Json(info)),
         None => Err((StatusCode::NOT_FOUND, "mesh info not available".to_string())),
     }
+}
+
+async fn directory_agents(
+    State(state): State<Arc<IndexState>>,
+    Query(query): Query<SearchQuery>,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let result = state.search_agent_profiles(query).await.map_err(err_to_response)?;
+    Ok(Json(result))
 }
 
 async fn search_agents(

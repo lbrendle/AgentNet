@@ -1,5 +1,5 @@
 use crate::models::{
-    AgentRecordIngest, CommunityRecordIngest, IdentityStateIngest, ReceiptIngest,
+    AgentProfileIngest, AgentRecordIngest, CommunityRecordIngest, IdentityStateIngest, ReceiptIngest,
     ServiceRecordIngest, SkillManifestIngest, SkillRegistryStateIngest, WorkAgreementIngest,
     WorkOfferIngest, WorkRegistryStateIngest,
 };
@@ -9,10 +9,10 @@ use crate::state::{
 };
 use crate::util::cbor_to_json_value;
 use anetsdk::{
-    decode_canonical, parse_agent_record, parse_community_record, parse_receipt_payload,
-    parse_service_record, sha256, verify_agent_record, verify_community_record,
-    verify_ed25519_hash, verify_service_record, verify_skill_manifest, verify_work_agreement,
-    verify_work_offer, ReceiptPayload,
+    decode_canonical, parse_agent_profile, parse_agent_record, parse_community_record,
+    parse_receipt_payload, parse_service_record, sha256, verify_agent_profile, verify_agent_record,
+    verify_community_record, verify_ed25519_hash, verify_service_record, verify_skill_manifest,
+    verify_work_agreement, verify_work_offer, ReceiptPayload,
 };
 use anyhow::{anyhow, Context, Result};
 use hex::FromHex;
@@ -154,6 +154,26 @@ pub async fn ingest_agent_record(state: Arc<IndexState>, payload: AgentRecordIng
     let now = now_ts();
     let mut db = state.db_mut().await;
     db.upsert_agent(&verified_payload, &record_hex, now)?;
+    Ok(())
+}
+
+pub async fn ingest_agent_profile(
+    state: Arc<IndexState>,
+    payload: AgentProfileIngest,
+) -> Result<()> {
+    state.ensure_identity_loaded().await?;
+    let record_bytes = decode_hex("agent_profile", &payload.cbor_hex)?;
+    let value = decode_canonical(&record_bytes).context("decode agent profile cbor")?;
+    let record = parse_agent_profile(&value).context("parse agent profile")?;
+    let agent_id = record.payload.agent_id.clone();
+    let pk = resolve_pubkey(&state, &agent_id, payload.public_key_hex.as_deref()).await?;
+    let verified_payload =
+        verify_agent_profile(&record_bytes, &pk).context("verify agent profile signature")?;
+    ensure_not_expired(verified_payload.expires)?;
+    let record_hex = hex::encode(&record_bytes);
+    let now = now_ts();
+    let mut db = state.db_mut().await;
+    db.upsert_agent_profile(&verified_payload, &record_hex, now)?;
     Ok(())
 }
 
