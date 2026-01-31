@@ -28,6 +28,10 @@ This document defines the repository structure, ownership boundaries, and artifa
 
 /impl
   /rust
+    /crates
+      anetsdk
+      anet-vectors
+      agentmesh
   /python
   /ts
   /swift
