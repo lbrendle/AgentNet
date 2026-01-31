@@ -86,6 +86,22 @@ infra/launch/validate-config.py --agentmesh /etc/agentnet/agentmesh/node-1/agent
 - Do not enable HTTP health checks for `agentmesh` unless you serve a health endpoint on the same port.
 - Render deployment assets and validation live in `infra/launch/render/` and must be populated with real values.
 
+### 5.6 Render mainnet sequence (automated)
+1) Populate the env JSON files referenced by `infra/launch/render/apply-config.py` with production values.
+2) Apply config + trigger deploys:
+```
+python infra/launch/render/apply-config.py --api-key-file ref/renderkey.txt
+```
+3) Wait until both services report `live` in the Render dashboard.
+4) Verify AgentIndex health:
+```
+curl -s https://agentindex-mainnet.onrender.com/health
+```
+5) Capture the AgentMesh peer id from startup logs and publish the bootstrap multiaddr:
+```
+/dns4/agentmesh-mainnet.onrender.com/tcp/443/wss/p2p/<peer-id>
+```
+
 ---
 
 ## 6) Identity and registry integrity

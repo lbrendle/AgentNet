@@ -40,6 +40,21 @@ PYTHONPATH=impl/python python -m agentnet_py.markdown_tests spec/agentnet-markdo
 - `infra/launch/render/` Render deployment assets and required environment variables.
 - `render.yaml` Render blueprint entrypoint.
 
+## Mainnet (Render)
+If deployed with the Render blueprint, the default public endpoints are:
+- AgentMesh (libp2p over WebSocket): `wss://agentmesh-mainnet.onrender.com`
+- AgentIndex (HTTP API): `https://agentindex-mainnet.onrender.com`
+
+Verify AgentIndex health:
+```
+curl -s https://agentindex-mainnet.onrender.com/health
+```
+
+Bootstrap multiaddr format (replace `<peer-id>` with the running mesh node peer id):
+```
+/dns4/agentmesh-mainnet.onrender.com/tcp/443/wss/p2p/<peer-id>
+```
+
 ## Protocol and architecture references
 - `spec/agentnet-v0.1.cddl` Canonical schemas.
 - `ref/architecture.md` System architecture and component boundaries.
