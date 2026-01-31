@@ -50,9 +50,15 @@ def post_json(url: str, payload: dict) -> None:
 
 
 def sync_loop(base_url: str, state_dir: Path, interval: int, retry_sec: int, max_backoff: int) -> None:
-    identity_path = state_dir / "identity_registry.json"
-    skill_path = state_dir / "skill_registry.json"
-    work_path = state_dir / "work_registry.json"
+    identity_path = Path(
+        os.getenv("AGENTMESH_TX_IDENTITY_STATE_PATH", str(state_dir / "identity_registry.json"))
+    )
+    skill_path = Path(
+        os.getenv("AGENTMESH_TX_SKILL_STATE_PATH", str(state_dir / "skill_registry.json"))
+    )
+    work_path = Path(
+        os.getenv("AGENTMESH_TX_WORK_STATE_PATH", str(state_dir / "work_registry.json"))
+    )
     mesh_info_path = state_dir / "mesh_info.json"
 
     last_hashes: dict[str, str] = {}

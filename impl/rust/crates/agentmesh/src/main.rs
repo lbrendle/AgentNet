@@ -55,6 +55,8 @@ enum Commands {
         proof_tx_hex: Option<String>,
         #[arg(long)]
         proof_voucher_hex: Option<String>,
+        #[arg(long, default_value = "0")]
+        preconnect_seconds: u64,
         #[arg(long, default_value = "5")]
         settle_seconds: u64,
     },
@@ -126,11 +128,16 @@ async fn main() -> Result<()> {
             payload_cbor,
             proof_tx_hex,
             proof_voucher_hex,
+            preconnect_seconds,
             settle_seconds,
         } => {
             let cfg = Config::load(&config)?;
             let keys = load_keypair(&cfg.key_path)?;
             let mut mesh = build_mesh(cfg, keys)?;
+            if preconnect_seconds > 0 {
+                mesh.run_for(std::time::Duration::from_secs(preconnect_seconds))
+                    .await?;
+            }
             let payload_bytes = std::fs::read(&payload_cbor)
                 .with_context(|| format!("read payload {}", payload_cbor.display()))?;
             let payload = anetsdk::decode_canonical(&payload_bytes)?;

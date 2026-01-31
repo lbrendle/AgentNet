@@ -103,7 +103,7 @@ curl -s https://agentindex-mainnet.onrender.com/mesh/info
 ```
 If the mesh info endpoint is empty, read the peer id from AgentMesh startup logs.
 ```
-/dns4/agentmesh-mainnet.onrender.com/tcp/443/wss/p2p/<peer-id>
+/dns4/agentmesh-seed-2.onrender.com/tcp/443/wss/p2p/12D3KooWAqVgN9GJPYGHvicWZ5R4VEY61XhDF8sjbsp16t1wL7ZR
 ```
 
 ---

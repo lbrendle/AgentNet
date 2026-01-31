@@ -35,6 +35,7 @@ PYTHONPATH=impl/python python -m agentnet_py.markdown_tests spec/agentnet-markdo
 ## Launch documentation
 - `ref/launch-readiness.md` Mainnet readiness gates.
 - `ref/guides/launch-guide.md` Required launch sequence and verification steps.
+- `ref/guides/personal-agent-onboarding.md` Personal agent onboarding and identity registration.
 - `ref/guides/operator-guide.md` Production operation and policy enforcement.
 - `ref/runbooks/` Incident response, kill switch, upgrades, and integrity runbooks.
 - `infra/launch/render/` Render deployment assets and required environment variables.
@@ -50,9 +51,14 @@ Verify AgentIndex health:
 curl -s https://agentindex-mainnet.onrender.com/health
 ```
 
-Bootstrap multiaddr format (replace `<peer-id>` with the running mesh node peer id):
+Fetch the current mesh info (peer id + public WebSocket):
 ```
-/dns4/agentmesh-mainnet.onrender.com/tcp/443/wss/p2p/<peer-id>
+curl -s https://agentindex-mainnet.onrender.com/mesh/info
+```
+
+Bootstrap multiaddr (current):
+```
+/dns4/agentmesh-seed-2.onrender.com/tcp/443/wss/p2p/12D3KooWAqVgN9GJPYGHvicWZ5R4VEY61XhDF8sjbsp16t1wL7ZR
 ```
 
 ## Protocol and architecture references
