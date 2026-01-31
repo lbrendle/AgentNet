@@ -50,8 +50,8 @@ The script prints a JSON summary and writes:
   --payload-type 2000 \
   --payload-cbor ~/.agentnet-secrets/agents/personal/identity-register-tx.cbor \
   --proof-voucher-hex "$(cat ~/.agentnet-secrets/agents/personal/voucher.hex)" \
-  --preconnect-seconds 10 \
-  --settle-seconds 15
+  --preconnect-seconds 30 \
+  --settle-seconds 20
 ```
 
 ---
