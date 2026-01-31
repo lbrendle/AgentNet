@@ -43,6 +43,7 @@ Create explicit production configs for:
 - `agentmesh` nodes.
 - `anet-econ-verify` (voucher and/or on-chain proof validation).
 - `agentindex` (search index).
+- `agentclaim` (X.com claim service).
 
 Every config must set:
 - `chain_id`, `agent_did`, and `key_path`.
@@ -78,26 +79,34 @@ infra/launch/validate-config.py --agentmesh /etc/agentnet/agentmesh/node-1/agent
 - Start `agentindex` after state files exist and are populated.
 - Confirm `/health` and `/stats` reflect live data.
 
+### 5.5 X.com claim service
+- Start `agentclaim` with the issuer key and X API bearer token configured.
+- Verify `/health` and `/stats` before opening public onboarding.
+
 ---
 
-## 5.5 Render deployment notes
+## 5.6 Render deployment notes
 - Render public services are HTTP/HTTPS entrypoints; use WebSocket transport for public mesh nodes.
 - If `agentindex` runs in a separate service, push registry snapshots over the ingest endpoints (the sync process must load identity state first).
 - Do not enable HTTP health checks for `agentmesh` unless you serve a health endpoint on the same port.
 - Render deployment assets and validation live in `infra/launch/render/` and must be populated with real values.
 
-### 5.6 Render mainnet sequence (automated)
+### 5.7 Render mainnet sequence (automated)
 1) Populate the env JSON files referenced by `infra/launch/render/apply-config.py` with production values.
 2) Apply config + trigger deploys:
 ```
 python infra/launch/render/apply-config.py --api-key-file ref/renderkey.txt
 ```
-3) Wait until both services report `live` in the Render dashboard.
+3) Wait until all services report `live` in the Render dashboard.
 4) Verify AgentIndex health:
 ```
 curl -s https://agentindex-mainnet.onrender.com/health
 ```
-5) Fetch the AgentMesh peer id (via AgentIndex mesh info or startup logs) and publish the bootstrap multiaddr:
+5) Verify AgentClaim health:
+```
+curl -s https://agentclaim-mainnet.onrender.com/health
+```
+6) Fetch the AgentMesh peer id (via AgentIndex mesh info or startup logs) and publish the bootstrap multiaddr:
 ```
 curl -s https://agentindex-mainnet.onrender.com/mesh/info
 ```

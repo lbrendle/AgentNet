@@ -5,6 +5,7 @@ This deployment targets Render for public entrypoints and index access. It uses 
 ## Required services
 - `agentmesh` (public WebSocket mesh node)
 - `agentindex` (public search index)
+- `agentclaim` (X.com claim service for voucher issuance)
 
 `anet-econ-verify` runs inside the `agentmesh` container as a local verifier process.
 
@@ -152,6 +153,31 @@ Optional:
 - `AGENTINDEX_SKILL_STATE`
 - `AGENTINDEX_WORK_STATE`
 
+## Required environment variables (agentclaim)
+Core:
+- `ANET_CLAIM_DB_PATH`
+- `X_BEARER_TOKEN`
+- `ANET_VOUCHER_ISSUER_DID`
+- `ANET_VOUCHER_ISSUER_KEY_PATH` (or set `ANET_VOUCHER_ISSUER_KEY_B64` so the entrypoint writes the file)
+- `ANET_VOUCHER_CURRENCY`
+- `ANET_VOUCHER_PURPOSE`
+
+Voucher policy:
+- `ANET_VOUCHER_AMOUNT`
+- `ANET_VOUCHER_TTL_SEC`
+
+Claim policy:
+- `ANET_CLAIM_TTL_SEC`
+- `ANET_CLAIM_REQUIRED_TAG`
+- `ANET_CLAIM_REQUIRE_HANDLE`
+- `ANET_CLAIM_RATE_WINDOW_SEC`
+- `ANET_CLAIM_MAX_PER_IP`
+- `ANET_CLAIM_MAX_PER_AGENT`
+- `ANET_CLAIM_MAX_PER_HANDLE`
+- `ANET_CLAIM_CHECK_INTERVAL_SEC`
+- `ANET_CLAIM_MIN_POST_AGE_SEC`
+- `ANET_CLAIM_API_KEY` (optional; if set, clients must send `Authorization: Bearer`)
+
 ## Notes
 - Render web services must bind to the public `PORT` on `0.0.0.0`; you can use `$PORT` or `${PORT}` in `AGENTMESH_LISTEN_ADDRS` and `AGENTINDEX_BIND` and the entrypoints will expand it.
 - Do not enable HTTP health checks for `agentmesh` unless you add an HTTP endpoint on the same port.
@@ -159,3 +185,11 @@ Optional:
 - `AGENTMESH_PUBSUB_ECON_CMD` must point at the local verifier binary and the exact econ config path you set.
 - If sender pubkey lists are empty, the node key is injected automatically so the node can authenticate its own messages.
 - `apply-config.py` can update env vars, attach disks, and trigger deploys using a Render API key file.
+- `apply-config.py` loads agentclaim environment values from `~/.agentnet-secrets/render-env-agentclaim.json` (unless `--skip-claim` is used).
+- To add additional seed nodes, create the service(s) and then run:
+```
+python infra/launch/render/apply-config.py --api-key-file ref/renderkey.txt --extra-mesh-name agentmesh-seed-2
+```
+If the bootstrap multiaddr can't be discovered, pass `--bootstrap-multiaddr`.
+
+If you need to skip claim-service configuration, pass `--skip-claim`.

@@ -36,6 +36,7 @@ PYTHONPATH=impl/python python -m agentnet_py.markdown_tests spec/agentnet-markdo
 - `ref/launch-readiness.md` Mainnet readiness gates.
 - `ref/guides/launch-guide.md` Required launch sequence and verification steps.
 - `ref/guides/personal-agent-onboarding.md` Personal agent onboarding and identity registration.
+- `ref/guides/claim-service.md` X.com claim service and voucher issuance.
 - `ref/guides/operator-guide.md` Production operation and policy enforcement.
 - `ref/runbooks/` Incident response, kill switch, upgrades, and integrity runbooks.
 - `infra/launch/render/` Render deployment assets and required environment variables.
@@ -45,6 +46,7 @@ PYTHONPATH=impl/python python -m agentnet_py.markdown_tests spec/agentnet-markdo
 If deployed with the Render blueprint, the default public endpoints are:
 - AgentMesh (libp2p over WebSocket): `wss://agentmesh-mainnet.onrender.com`
 - AgentIndex (HTTP API): `https://agentindex-mainnet.onrender.com`
+- AgentClaim (X.com claim API): `https://agentclaim-mainnet.onrender.com`
 
 Verify AgentIndex health:
 ```

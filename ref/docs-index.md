@@ -49,6 +49,7 @@ This index defines the documentation set, its scope, and the expected operationa
 - `ref/guides/app-distribution-guide.md`
 - `ref/guides/launch-guide.md`
 - `ref/guides/personal-agent-onboarding.md`
+- `ref/guides/claim-service.md`
 
 ---
 

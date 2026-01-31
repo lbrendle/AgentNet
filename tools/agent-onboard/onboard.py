@@ -9,6 +9,8 @@ import os
 import secrets
 import sys
 import time
+import urllib.error
+import urllib.request
 from pathlib import Path
 from typing import Optional
 
@@ -132,8 +134,6 @@ def build_agentmesh_config(
 
 
 def fetch_mesh_info(index_url: str) -> Optional[dict]:
-    import urllib.request
-
     try:
         with urllib.request.urlopen(index_url.rstrip("/") + "/mesh/info") as resp:
             if resp.status != 200:
@@ -141,6 +141,52 @@ def fetch_mesh_info(index_url: str) -> Optional[dict]:
             return json.loads(resp.read().decode("utf-8"))
     except Exception:
         return None
+
+
+def request_json(method: str, url: str, payload: Optional[dict] = None) -> dict:
+    data = None
+    headers = {"Content-Type": "application/json"}
+    if payload is not None:
+        data = json.dumps(payload).encode("utf-8")
+    req = urllib.request.Request(url, data=data, headers=headers, method=method)
+    try:
+        with urllib.request.urlopen(req) as resp:
+            body = resp.read()
+            if not body:
+                return {}
+            return json.loads(body.decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        body = exc.read().decode("utf-8", errors="replace")
+        raise SystemExit(f"[agent-onboard] {method} {url} failed: {exc.code} {body}")
+    except urllib.error.URLError as exc:
+        raise SystemExit(f"[agent-onboard] {method} {url} failed: {exc}")
+
+
+def claim_voucher(args: argparse.Namespace, agent_did: str) -> tuple[Optional[str], dict]:
+    if not args.claim_service_url:
+        return None, {}
+    base = args.claim_service_url.rstrip("/")
+    payload = {"agent_did": agent_did}
+    if args.x_handle:
+        payload["x_handle"] = args.x_handle
+    claim = request_json("POST", f"{base}/v1/claims", payload)
+    claim_id = claim.get("claim_id")
+    if not claim_id:
+        raise SystemExit("[agent-onboard] claim service did not return claim_id")
+    required_post = claim.get("required_post")
+    if required_post:
+        print(f"[agent-onboard] post on X: {required_post}", file=sys.stderr)
+    claim_url = f"{base}/v1/claims/{claim_id}"
+    claim["claim_url"] = claim_url
+    if args.claim_wait_sec <= 0:
+        return None, claim
+    deadline = time.time() + args.claim_wait_sec
+    while time.time() < deadline:
+        status = request_json("GET", claim_url)
+        if status.get("status") == "issued" and status.get("voucher_hex"):
+            return status["voucher_hex"], status
+        time.sleep(max(1, int(args.claim_poll_sec)))
+    raise SystemExit("[agent-onboard] claim voucher not issued within wait window")
 
 
 def build_bootstrap(mesh_info: dict) -> Optional[str]:
@@ -162,8 +208,12 @@ def build_bootstrap(mesh_info: dict) -> Optional[str]:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Onboard a personal AgentNet agent.")
     parser.add_argument("--out-dir", type=Path, required=True)
-    parser.add_argument("--issuer-key", type=Path, required=True)
-    parser.add_argument("--issuer-did", required=True)
+    parser.add_argument("--issuer-key", type=Path)
+    parser.add_argument("--issuer-did")
+    parser.add_argument("--claim-service-url", default=None)
+    parser.add_argument("--x-handle", default=None)
+    parser.add_argument("--claim-wait-sec", type=int, default=600)
+    parser.add_argument("--claim-poll-sec", type=int, default=10)
     parser.add_argument("--chain-id", default="agentnet-mainnet-1")
     parser.add_argument("--index-url", default="https://agentindex-mainnet.onrender.com")
     parser.add_argument("--bootstrap", default=None)
@@ -179,6 +229,10 @@ def main() -> None:
     parser.add_argument("--publish-interval-sec", type=int, default=600)
     parser.add_argument("--enable-agentmail", action="store_true")
     args = parser.parse_args()
+
+    if not args.claim_service_url:
+        if not args.issuer_key or not args.issuer_did:
+            raise SystemExit("[agent-onboard] --issuer-key and --issuer-did required without claim service")
 
     out_dir: Path = args.out_dir.expanduser().resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -254,30 +308,41 @@ def main() -> None:
     write_bytes(out_dir / "identity-register-tx.cbor", tx_cbor)
     write_text(out_dir / "identity-register-tx.hex", tx_cbor.hex())
 
-    issuer_secret = read_base64_key(args.issuer_key)
-    issuer_private = ed25519.Ed25519PrivateKey.from_private_bytes(issuer_secret)
-
-    now = int(time.time())
-    exp = now + int(args.voucher_ttl_sec)
-    nonce = secrets.token_bytes(16)
-    voucher_payload = {
-        0: args.issuer_did,
-        1: agent_did,
-        2: args.amount,
-        3: args.currency,
-        4: args.purpose,
-        5: now,
-        6: exp,
-        7: nonce,
-    }
-    voucher_payload_cbor = canonical_cbor(voucher_payload)
-    voucher_hash = sha256(voucher_payload_cbor)
-    voucher_sig = issuer_private.sign(voucher_hash)
-    voucher_map = dict(voucher_payload)
-    voucher_map[8] = voucher_sig
-    voucher_cbor = canonical_cbor(voucher_map)
-    write_bytes(out_dir / "voucher.cbor", voucher_cbor)
-    write_text(out_dir / "voucher.hex", voucher_cbor.hex())
+    voucher_hex = None
+    claim_info: dict = {}
+    if args.claim_service_url:
+        voucher_hex, claim_info = claim_voucher(args, agent_did)
+        if claim_info:
+            write_text(out_dir / "claim.json", json.dumps(claim_info, indent=2))
+        if voucher_hex:
+            voucher_bytes = bytes.fromhex(voucher_hex)
+            write_bytes(out_dir / "voucher.cbor", voucher_bytes)
+            write_text(out_dir / "voucher.hex", voucher_hex)
+    else:
+        issuer_secret = read_base64_key(args.issuer_key)
+        issuer_private = ed25519.Ed25519PrivateKey.from_private_bytes(issuer_secret)
+        now = int(time.time())
+        exp = now + int(args.voucher_ttl_sec)
+        nonce = secrets.token_bytes(16)
+        voucher_payload = {
+            0: args.issuer_did,
+            1: agent_did,
+            2: args.amount,
+            3: args.currency,
+            4: args.purpose,
+            5: now,
+            6: exp,
+            7: nonce,
+        }
+        voucher_payload_cbor = canonical_cbor(voucher_payload)
+        voucher_hash = sha256(voucher_payload_cbor)
+        voucher_sig = issuer_private.sign(voucher_hash)
+        voucher_map = dict(voucher_payload)
+        voucher_map[8] = voucher_sig
+        voucher_cbor = canonical_cbor(voucher_map)
+        voucher_hex = voucher_cbor.hex()
+        write_bytes(out_dir / "voucher.cbor", voucher_cbor)
+        write_text(out_dir / "voucher.hex", voucher_hex)
 
     bootstrap = args.bootstrap
     if not bootstrap:
@@ -309,7 +374,9 @@ def main() -> None:
         "ed25519_key": str(ed_key_path),
         "x25519_key": str(x_key_path),
         "identity_tx_cbor": str(out_dir / "identity-register-tx.cbor"),
-        "voucher_hex": str(out_dir / "voucher.hex"),
+        "voucher_hex": str(out_dir / "voucher.hex") if voucher_hex else None,
+        "claim_info": str(out_dir / "claim.json") if claim_info else None,
+        "claim_service_url": args.claim_service_url,
         "agentmesh_config": str(config_path),
         "bootstrap": bootstrap,
     }

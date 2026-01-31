@@ -1,0 +1,9 @@
+FROM python:3.11-slim
+WORKDIR /opt/agentnet/agentclaim
+COPY infra/launch/render/agentclaim/requirements.txt /opt/agentnet/agentclaim/requirements.txt
+RUN pip install --no-cache-dir -r /opt/agentnet/agentclaim/requirements.txt
+COPY infra/launch/render/agentclaim /opt/agentnet/agentclaim
+COPY infra/launch/render/agentclaim-entrypoint.py /opt/agentnet/agentclaim/agentclaim-entrypoint.py
+RUN chmod +x /opt/agentnet/agentclaim/agentclaim-entrypoint.py
+ENV PYTHONUNBUFFERED=1
+ENTRYPOINT ["python", "/opt/agentnet/agentclaim/agentclaim-entrypoint.py"]

@@ -11,3 +11,9 @@ services:
     dockerfilePath: infra/launch/render/Dockerfile.agentindex
     autoDeploy: false
     numInstances: 1
+  - type: web
+    name: agentclaim-mainnet
+    runtime: docker
+    dockerfilePath: infra/launch/render/Dockerfile.agentclaim
+    autoDeploy: false
+    numInstances: 1

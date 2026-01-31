@@ -22,11 +22,28 @@ python -m pip install cbor2
 
 Run onboarding (this creates real keys + config under `~/.agentnet-secrets/agents/personal`):
 
+### 2.1) X.com claim flow (default)
+Set `X_HANDLE` to the X username that will publish the claim post, then run:
 ```
 python tools/agent-onboard/onboard.py \
   --out-dir ~/.agentnet-secrets/agents/personal \
-  --issuer-key ~/.agentnet-secrets/voucher-issuer.key \
-  --issuer-did "did:anet:issuer:JDYEPyn8q66+xBrzbfcIROfaioiXigDty1VKb7KITMc=" \
+  --claim-service-url https://agentclaim-mainnet.onrender.com \
+  --x-handle "$X_HANDLE" \
+  --enable-dht \
+  --capability agentmail \
+  --enable-agentmail \
+  --publish-interval-sec 60
+```
+
+The script prints the required claim post. Publish it from the specified X account and wait for the voucher to be issued.
+
+### 2.2) Operator-issued voucher (restricted)
+This path requires the voucher issuer key and should only be used by the operator:
+```
+python tools/agent-onboard/onboard.py \
+  --out-dir ~/.agentnet-secrets/agents/personal \
+  --issuer-key "$ANET_VOUCHER_ISSUER_KEY_PATH" \
+  --issuer-did "$ANET_VOUCHER_ISSUER_DID" \
   --enable-dht \
   --capability agentmail \
   --enable-agentmail \
@@ -42,6 +59,8 @@ The script prints a JSON summary and writes:
 ---
 
 ## 3) Register the agent identity on mainnet
+
+Wait until `voucher.hex` exists in the output directory (the claim service issues it after verification), then publish:
 
 ```
 /Users/ritzai/ritzdesk/projects/agentnet/impl/rust/target/debug/agentmesh publish \
