@@ -2195,6 +2195,7 @@ impl AgentMailSeen {
         let file = OpenOptions::new()
             .create(true)
             .read(true)
+            .write(true)
             .open(path)
             .with_context(|| format!("open agentmail seen {}", path.display()))?;
         let reader = BufReader::new(file);

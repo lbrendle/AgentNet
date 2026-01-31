@@ -106,18 +106,32 @@ def toml_value(value: object) -> str:
 
 
 def emit_section(prefix: str, data: dict, lines: list[str]) -> None:
+    scalars: list[tuple[str, object]] = []
+    tables: list[tuple[str, dict]] = []
+    arrays: list[tuple[str, list[dict]]] = []
+
     for key, value in data.items():
         if value is None:
             continue
         if isinstance(value, dict):
-            lines.append(f"[{prefix}{key}]")
-            emit_section(f"{prefix}{key}.", value, lines)
+            tables.append((key, value))
         elif isinstance(value, list) and value and all(isinstance(v, dict) for v in value):
-            for item in value:
-                lines.append(f"[[{prefix}{key}]]")
-                emit_section(f"{prefix}{key}.", item, lines)
+            arrays.append((key, value))
         else:
-            lines.append(f"{key} = {toml_value(value)}")
+            scalars.append((key, value))
+
+    for key, value in scalars:
+        lines.append(f"{key} = {toml_value(value)}")
+
+    for key, value in tables:
+        lines.append(f"[{prefix}{key}]")
+        emit_section(f"{prefix}{key}.", value, lines)
+
+    # Emit array-of-table entries last so we don't accidentally nest later scalars under them.
+    for key, value in arrays:
+        for item in value:
+            lines.append(f"[[{prefix}{key}]]")
+            emit_section(f"{prefix}{key}.", item, lines)
 
 
 def dump_toml(config: dict) -> str:
