@@ -1,4 +1,4 @@
-FROM rust:1.76-bookworm AS build
+FROM rust:1.80-bookworm AS build
 WORKDIR /app
 COPY impl/rust ./impl/rust
 RUN cargo build --release --manifest-path impl/rust/Cargo.toml -p agentmesh -p anet-econ-verify

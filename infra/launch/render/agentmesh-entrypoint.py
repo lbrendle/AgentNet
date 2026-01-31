@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import base64
 import json
 import os
 import subprocess
@@ -17,14 +18,14 @@ def env_required(name: str) -> str:
     value = os.getenv(name)
     if value is None or value.strip() == "":
         fail(f"missing required env: {name}")
-    return value.strip()
+    return expand_port(value.strip())
 
 
 def env_optional(name: str, default: str | None = None) -> str | None:
     value = os.getenv(name)
     if value is None:
         return default
-    value = value.strip()
+    value = expand_port(value.strip())
     return value if value else default
 
 
@@ -36,6 +37,19 @@ def env_bool(name: str) -> bool:
         return False
     fail(f"invalid boolean for {name}: {value}")
     return False
+
+
+def env_bool_optional(name: str, default: bool = False) -> bool:
+    raw = env_optional(name)
+    if raw is None:
+        return default
+    value = raw.lower()
+    if value in ("true", "1", "yes"):
+        return True
+    if value in ("false", "0", "no"):
+        return False
+    fail(f"invalid boolean for {name}: {value}")
+    return default
 
 
 def env_int(name: str) -> int:
@@ -52,7 +66,7 @@ def env_list(name: str) -> list[str]:
     items = [item.strip() for item in raw.split(",") if item.strip()]
     if not items:
         fail(f"{name} must contain at least one item")
-    return items
+    return [expand_port(item) for item in items]
 
 
 def env_list_optional(name: str) -> list[str]:
@@ -60,7 +74,7 @@ def env_list_optional(name: str) -> list[str]:
     if raw is None:
         return []
     items = [item.strip() for item in raw.split(",") if item.strip()]
-    return items
+    return [expand_port(item) for item in items]
 
 
 def env_json(name: str) -> object:
@@ -93,6 +107,8 @@ def toml_value(value: object) -> str:
 
 def emit_section(prefix: str, data: dict, lines: list[str]) -> None:
     for key, value in data.items():
+        if value is None:
+            continue
         if isinstance(value, dict):
             lines.append(f"[{prefix}{key}]")
             emit_section(f"{prefix}{key}.", value, lines)
@@ -110,6 +126,15 @@ def dump_toml(config: dict) -> str:
     return "\n".join(lines) + "\n"
 
 
+def expand_port(value: str) -> str:
+    if "$PORT" not in value and "${PORT}" not in value:
+        return value
+    port = os.getenv("PORT")
+    if port is None or port.strip() == "":
+        fail("PORT must be set when using $PORT placeholders")
+    return value.replace("${PORT}", port.strip()).replace("$PORT", port.strip())
+
+
 def ensure_key(path: Path) -> None:
     if path.exists():
         return
@@ -121,12 +146,40 @@ def ensure_key(path: Path) -> None:
     )
 
 
+def read_pubkey_hex(key_path: Path) -> str:
+    result = subprocess.run(
+        ["/usr/local/bin/agentmesh", "pubkey", "--key", str(key_path)],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    pubkey_hex = result.stdout.strip()
+    if not pubkey_hex:
+        fail("agentmesh pubkey returned empty output")
+    return pubkey_hex
+
+
+def compute_agent_did(pubkey_hex: str) -> str:
+    try:
+        raw = bytes.fromhex(pubkey_hex)
+    except ValueError:
+        fail("agentmesh pubkey hex invalid")
+        return ""
+    did_suffix = base64.b64encode(raw).decode("ascii")
+    return f"did:anet:agent:{did_suffix}"
+
+
 def main() -> None:
     key_path = Path(env_optional("AGENTMESH_KEY_PATH", "/var/lib/agentnet/keys/agentmesh.key"))
     state_dir = Path(env_optional("AGENTMESH_STATE_DIR", "/var/lib/agentnet/state"))
     state_dir.mkdir(parents=True, exist_ok=True)
 
     ensure_key(key_path)
+
+    pubkey_hex = read_pubkey_hex(key_path)
+    agent_did_value = env_optional("AGENTMESH_AGENT_DID")
+    if agent_did_value is None or agent_did_value.lower() == "auto":
+        agent_did_value = compute_agent_did(pubkey_hex)
 
     pubsub_econ_cmd = env_json("AGENTMESH_PUBSUB_ECON_CMD")
     if not isinstance(pubsub_econ_cmd, list) or not pubsub_econ_cmd:
@@ -135,6 +188,10 @@ def main() -> None:
     tx_sender_keys = env_json("AGENTMESH_TX_SENDER_PUBKEYS_JSON")
     if not isinstance(tx_sender_keys, list):
         fail("AGENTMESH_TX_SENDER_PUBKEYS_JSON must be a JSON array")
+    if not tx_sender_keys:
+        tx_sender_keys = []
+    if not any(isinstance(entry, dict) and entry.get("did") == agent_did_value for entry in tx_sender_keys):
+        tx_sender_keys.append({"did": agent_did_value, "pubkey_hex": pubkey_hex})
 
     budget_caps = env_json("AGENTMESH_TX_BUDGET_CAPS_JSON")
     if not isinstance(budget_caps, list) or not budget_caps:
@@ -143,18 +200,30 @@ def main() -> None:
     agentmail_sender_keys = env_json("AGENTMESH_AGENTMAIL_SENDER_PUBKEYS_JSON")
     if not isinstance(agentmail_sender_keys, list):
         fail("AGENTMESH_AGENTMAIL_SENDER_PUBKEYS_JSON must be a JSON array")
+    if not agentmail_sender_keys:
+        agentmail_sender_keys = []
+    if not any(isinstance(entry, dict) and entry.get("did") == agent_did_value for entry in agentmail_sender_keys):
+        agentmail_sender_keys.append({"did": agent_did_value, "pubkey_hex": pubkey_hex})
 
     dht_service_records = env_json("AGENTMESH_DHT_SERVICE_RECORDS_JSON")
     if not isinstance(dht_service_records, list):
         fail("AGENTMESH_DHT_SERVICE_RECORDS_JSON must be a JSON array")
 
-    dht_community_record = env_json("AGENTMESH_DHT_COMMUNITY_RECORD_JSON")
-    if not isinstance(dht_community_record, dict):
-        fail("AGENTMESH_DHT_COMMUNITY_RECORD_JSON must be a JSON object")
+    dht_community_record = None
+    dht_community_raw = env_optional("AGENTMESH_DHT_COMMUNITY_RECORD_JSON")
+    if dht_community_raw:
+        try:
+            dht_community_record = json.loads(dht_community_raw)
+        except json.JSONDecodeError as exc:
+            fail(f"invalid JSON for AGENTMESH_DHT_COMMUNITY_RECORD_JSON: {exc}")
+        if not isinstance(dht_community_record, dict):
+            fail("AGENTMESH_DHT_COMMUNITY_RECORD_JSON must be a JSON object")
 
     voucher_issuers = env_json("ANET_ECON_VOUCHER_ISSUERS_JSON")
     if not isinstance(voucher_issuers, list) or not voucher_issuers:
         fail("ANET_ECON_VOUCHER_ISSUERS_JSON must be a non-empty JSON array")
+
+    onchain_enabled = env_bool_optional("ANET_ECON_ONCHAIN_ENABLED", False)
 
     econ_config = {
         "voucher": {
@@ -164,8 +233,10 @@ def main() -> None:
             "require_topic_match": env_bool("ANET_ECON_VOUCHER_REQUIRE_TOPIC_MATCH"),
             "allowed_purposes": env_list("ANET_ECON_VOUCHER_ALLOWED_PURPOSES"),
         },
-        "onchain": {
-            "enabled": env_bool("ANET_ECON_ONCHAIN_ENABLED"),
+    }
+    if onchain_enabled:
+        econ_config["onchain"] = {
+            "enabled": True,
             "chain_id": env_required("ANET_ECON_ONCHAIN_CHAIN_ID"),
             "rpc_url": env_required("ANET_ECON_ONCHAIN_RPC_URL"),
             "min_confirmations": env_int("ANET_ECON_ONCHAIN_MIN_CONFIRMATIONS"),
@@ -173,12 +244,19 @@ def main() -> None:
             "max_tx_age_sec": env_int("ANET_ECON_ONCHAIN_MAX_TX_AGE_SEC"),
             "required_to": env_required("ANET_ECON_ONCHAIN_REQUIRED_TO"),
             "required_from": env_required("ANET_ECON_ONCHAIN_REQUIRED_FROM"),
-        },
-    }
+        }
+
+    escrow_arbitrators = env_list_optional("AGENTMESH_TX_ESCROW_ARBITRATORS")
+    if not escrow_arbitrators:
+        escrow_arbitrators = [agent_did_value]
+
+    agent_record_key = env_required("AGENTMESH_DHT_AGENT_RECORD_KEY")
+    if agent_record_key.lower() == "auto":
+        agent_record_key = f"agentnet/agent/{agent_did_value}"
 
     config = {
         "chain_id": env_required("AGENTMESH_CHAIN_ID"),
-        "agent_did": env_required("AGENTMESH_AGENT_DID"),
+        "agent_did": agent_did_value,
         "key_path": str(key_path),
         "node_id": env_optional("AGENTMESH_NODE_ID"),
         "state_dir": str(state_dir),
@@ -228,6 +306,10 @@ def main() -> None:
             "identity": {
                 "enabled": env_bool("AGENTMESH_TX_IDENTITY_ENABLED"),
                 "state_path": env_required("AGENTMESH_TX_IDENTITY_STATE_PATH"),
+                "allow_register": env_bool("AGENTMESH_TX_IDENTITY_ALLOW_REGISTER"),
+                "allow_rotate": env_bool("AGENTMESH_TX_IDENTITY_ALLOW_ROTATE"),
+                "allow_revoke": env_bool("AGENTMESH_TX_IDENTITY_ALLOW_REVOKE"),
+                "max_clock_skew_sec": env_int("AGENTMESH_TX_IDENTITY_MAX_CLOCK_SKEW_SEC"),
             },
             "budget": {
                 "enabled": env_bool("AGENTMESH_TX_BUDGET_ENABLED"),
@@ -238,15 +320,25 @@ def main() -> None:
             "skill_registry": {
                 "enabled": env_bool("AGENTMESH_TX_SKILL_ENABLED"),
                 "state_path": env_required("AGENTMESH_TX_SKILL_STATE_PATH"),
+                "allow_publish": env_bool("AGENTMESH_TX_SKILL_ALLOW_PUBLISH"),
+                "allow_update": env_bool("AGENTMESH_TX_SKILL_ALLOW_UPDATE"),
+                "allow_revoke": env_bool("AGENTMESH_TX_SKILL_ALLOW_REVOKE"),
+                "max_clock_skew_sec": env_int("AGENTMESH_TX_SKILL_MAX_CLOCK_SKEW_SEC"),
             },
             "work_registry": {
                 "enabled": env_bool("AGENTMESH_TX_WORK_ENABLED"),
                 "state_path": env_required("AGENTMESH_TX_WORK_STATE_PATH"),
+                "allow_offer_publish": env_bool("AGENTMESH_TX_WORK_ALLOW_OFFER_PUBLISH"),
+                "allow_agreement_publish": env_bool("AGENTMESH_TX_WORK_ALLOW_AGREEMENT_PUBLISH"),
+                "allow_agreement_update": env_bool("AGENTMESH_TX_WORK_ALLOW_AGREEMENT_UPDATE"),
+                "allow_agreement_close": env_bool("AGENTMESH_TX_WORK_ALLOW_AGREEMENT_CLOSE"),
+                "max_clock_skew_sec": env_int("AGENTMESH_TX_WORK_MAX_CLOCK_SKEW_SEC"),
             },
             "escrow": {
                 "enabled": env_bool("AGENTMESH_TX_ESCROW_ENABLED"),
                 "state_path": env_required("AGENTMESH_TX_ESCROW_STATE_PATH"),
                 "log_path": env_required("AGENTMESH_TX_ESCROW_LOG_PATH"),
+                "arbitrators": escrow_arbitrators,
             },
         },
         "agentmail": {
@@ -273,8 +365,8 @@ def main() -> None:
             "enabled": env_bool("AGENTMESH_DHT_ENABLED"),
             "publish_interval_sec": env_int("AGENTMESH_DHT_PUBLISH_INTERVAL_SEC"),
             "agent_record": {
-                "record_key": env_required("AGENTMESH_DHT_AGENT_RECORD_KEY"),
-                "agent_pubkeys_hex": env_list("AGENTMESH_DHT_AGENT_PUBKEYS_HEX"),
+                "record_key": agent_record_key,
+                "agent_pubkeys_hex": env_list_optional("AGENTMESH_DHT_AGENT_PUBKEYS_HEX"),
                 "capabilities": env_list("AGENTMESH_DHT_AGENT_CAPABILITIES"),
                 "expires_sec": env_int("AGENTMESH_DHT_AGENT_EXPIRES_SEC"),
                 "signing_key_path": env_optional("AGENTMESH_DHT_AGENT_SIGNING_KEY_PATH"),

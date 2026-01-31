@@ -13,7 +13,7 @@ All values must be set explicitly; no defaults are assumed at launch.
 
 Core:
 - `AGENTMESH_CHAIN_ID`
-- `AGENTMESH_AGENT_DID`
+- `AGENTMESH_AGENT_DID` (set to `auto` to derive from node key)
 - `AGENTMESH_NODE_ID` (optional)
 - `AGENTMESH_KEY_PATH`
 - `AGENTMESH_STATE_DIR`
@@ -63,17 +63,31 @@ TX:
 - `AGENTMESH_TX_SENDER_PUBKEYS_JSON` (JSON array)
 - `AGENTMESH_TX_IDENTITY_ENABLED`
 - `AGENTMESH_TX_IDENTITY_STATE_PATH`
+- `AGENTMESH_TX_IDENTITY_ALLOW_REGISTER`
+- `AGENTMESH_TX_IDENTITY_ALLOW_ROTATE`
+- `AGENTMESH_TX_IDENTITY_ALLOW_REVOKE`
+- `AGENTMESH_TX_IDENTITY_MAX_CLOCK_SKEW_SEC`
 - `AGENTMESH_TX_BUDGET_ENABLED`
 - `AGENTMESH_TX_BUDGET_STATE_PATH`
 - `AGENTMESH_TX_BUDGET_WINDOW_SEC`
 - `AGENTMESH_TX_BUDGET_CAPS_JSON` (JSON array)
 - `AGENTMESH_TX_SKILL_ENABLED`
 - `AGENTMESH_TX_SKILL_STATE_PATH`
+- `AGENTMESH_TX_SKILL_ALLOW_PUBLISH`
+- `AGENTMESH_TX_SKILL_ALLOW_UPDATE`
+- `AGENTMESH_TX_SKILL_ALLOW_REVOKE`
+- `AGENTMESH_TX_SKILL_MAX_CLOCK_SKEW_SEC`
 - `AGENTMESH_TX_WORK_ENABLED`
 - `AGENTMESH_TX_WORK_STATE_PATH`
+- `AGENTMESH_TX_WORK_ALLOW_OFFER_PUBLISH`
+- `AGENTMESH_TX_WORK_ALLOW_AGREEMENT_PUBLISH`
+- `AGENTMESH_TX_WORK_ALLOW_AGREEMENT_UPDATE`
+- `AGENTMESH_TX_WORK_ALLOW_AGREEMENT_CLOSE`
+- `AGENTMESH_TX_WORK_MAX_CLOCK_SKEW_SEC`
 - `AGENTMESH_TX_ESCROW_ENABLED`
 - `AGENTMESH_TX_ESCROW_STATE_PATH`
 - `AGENTMESH_TX_ESCROW_LOG_PATH`
+- `AGENTMESH_TX_ESCROW_ARBITRATORS` (comma-separated, optional)
 
 AgentMail:
 - `AGENTMESH_AGENTMAIL_ENABLED`
@@ -98,13 +112,13 @@ AgentMail:
 DHT:
 - `AGENTMESH_DHT_ENABLED`
 - `AGENTMESH_DHT_PUBLISH_INTERVAL_SEC`
-- `AGENTMESH_DHT_AGENT_RECORD_KEY`
-- `AGENTMESH_DHT_AGENT_PUBKEYS_HEX` (comma-separated)
+- `AGENTMESH_DHT_AGENT_RECORD_KEY` (set to `auto` to derive from agent DID)
+- `AGENTMESH_DHT_AGENT_PUBKEYS_HEX` (comma-separated, optional)
 - `AGENTMESH_DHT_AGENT_CAPABILITIES` (comma-separated)
 - `AGENTMESH_DHT_AGENT_EXPIRES_SEC`
 - `AGENTMESH_DHT_AGENT_SIGNING_KEY_PATH` (optional)
 - `AGENTMESH_DHT_SERVICE_RECORDS_JSON` (JSON array)
-- `AGENTMESH_DHT_COMMUNITY_RECORD_JSON` (JSON object)
+- `AGENTMESH_DHT_COMMUNITY_RECORD_JSON` (JSON object, optional)
 
 Economic proof config:
 - `AGENTMESH_ECON_CONFIG_PATH`
@@ -113,7 +127,7 @@ Economic proof config:
 - `ANET_ECON_VOUCHER_MAX_CLOCK_SKEW_SEC`
 - `ANET_ECON_VOUCHER_REQUIRE_TOPIC_MATCH`
 - `ANET_ECON_VOUCHER_ALLOWED_PURPOSES` (comma-separated)
-- `ANET_ECON_ONCHAIN_ENABLED`
+- `ANET_ECON_ONCHAIN_ENABLED` (optional; if `true`, the following are required)
 - `ANET_ECON_ONCHAIN_CHAIN_ID`
 - `ANET_ECON_ONCHAIN_RPC_URL`
 - `ANET_ECON_ONCHAIN_MIN_CONFIRMATIONS`
@@ -138,7 +152,9 @@ Optional:
 - `AGENTINDEX_WORK_STATE`
 
 ## Notes
-- Render web services must bind to the public `PORT` on `0.0.0.0`; use WebSocket multiaddrs for the public ingress.
+- Render web services must bind to the public `PORT` on `0.0.0.0`; you can use `$PORT` or `${PORT}` in `AGENTMESH_LISTEN_ADDRS` and `AGENTINDEX_BIND` and the entrypoints will expand it.
 - Do not enable HTTP health checks for `agentmesh` unless you add an HTTP endpoint on the same port.
 - Keep kill switch custody outside the platform; only the public key is stored in service configuration.
 - `AGENTMESH_PUBSUB_ECON_CMD` must point at the local verifier binary and the exact econ config path you set.
+- If sender pubkey lists are empty, the node key is injected automatically so the node can authenticate its own messages.
+- `apply-config.py` can update env vars, attach disks, and trigger deploys using a Render API key file.

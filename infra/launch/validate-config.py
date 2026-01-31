@@ -172,13 +172,14 @@ def validate_econ(path: Path) -> None:
         if not isinstance(onchain, dict):
             fail("onchain must be a table")
         require_bool(onchain, "enabled", "onchain")
-        require(onchain, "chain_id", "onchain")
-        require(onchain, "rpc_url", "onchain")
-        require_int(onchain, "min_confirmations", "onchain")
-        require_bool(onchain, "require_success", "onchain")
-        require_int(onchain, "max_tx_age_sec", "onchain")
-        require(onchain, "required_to", "onchain")
-        require(onchain, "required_from", "onchain")
+        if onchain.get("enabled", False):
+            require(onchain, "chain_id", "onchain")
+            require(onchain, "rpc_url", "onchain")
+            require_int(onchain, "min_confirmations", "onchain")
+            require_bool(onchain, "require_success", "onchain")
+            require_int(onchain, "max_tx_age_sec", "onchain")
+            require(onchain, "required_to", "onchain")
+            require(onchain, "required_from", "onchain")
 
     print(f"OK: {path}")
 

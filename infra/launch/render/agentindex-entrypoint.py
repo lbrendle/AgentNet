@@ -16,14 +16,14 @@ def env_required(name: str) -> str:
     value = os.getenv(name)
     if value is None or value.strip() == "":
         fail(f"missing required env: {name}")
-    return value.strip()
+    return expand_port(value.strip())
 
 
 def env_optional(name: str) -> str | None:
     value = os.getenv(name)
     if value is None:
         return None
-    value = value.strip()
+    value = expand_port(value.strip())
     return value if value else None
 
 
@@ -45,6 +45,15 @@ def main() -> None:
         args.extend(["--work_registry_state", work_state])
 
     subprocess.run(args, check=True)
+
+
+def expand_port(value: str) -> str:
+    if "$PORT" not in value and "${PORT}" not in value:
+        return value
+    port = os.getenv("PORT")
+    if port is None or port.strip() == "":
+        fail("PORT must be set when using $PORT placeholders")
+    return value.replace("${PORT}", port.strip()).replace("$PORT", port.strip())
 
 
 if __name__ == "__main__":

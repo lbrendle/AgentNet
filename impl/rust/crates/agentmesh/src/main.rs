@@ -38,6 +38,10 @@ enum Commands {
         #[arg(long)]
         key: PathBuf,
     },
+    Pubkey {
+        #[arg(long)]
+        key: PathBuf,
+    },
     Publish {
         #[arg(long)]
         config: PathBuf,
@@ -109,6 +113,11 @@ async fn main() -> Result<()> {
             let keypair = identity::Keypair::ed25519_from_bytes(&mut secret_bytes)
                 .context("build libp2p keypair")?;
             println!("{}", keypair.public().to_peer_id());
+        }
+        Commands::Pubkey { key } => {
+            let keys = load_keypair(&key)?;
+            let pubkey = keys.verifying_key.to_bytes();
+            println!("{}", hex::encode(pubkey));
         }
         Commands::Publish {
             config,

@@ -443,7 +443,12 @@ impl MeshNode {
                 .context("subscribe kill switch topic")?;
         }
 
-        info!("mesh node running (agent_did={})", self.agent_did);
+        info!(
+            "mesh node running (agent_did={}, peer_id={}, listen_addrs={:?})",
+            self.agent_did,
+            self.swarm.local_peer_id(),
+            self.listen_addrs
+        );
 
         loop {
             tokio::select! {
