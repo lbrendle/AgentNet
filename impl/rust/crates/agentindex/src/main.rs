@@ -6,9 +6,9 @@ mod util;
 
 use crate::db::IndexDb;
 use crate::ingest::{
-    ingest_agent_profile, ingest_agent_record, ingest_community_record, ingest_identity_state,
-    ingest_receipt, ingest_service_record, ingest_skill_manifest, ingest_skill_registry_state,
-    ingest_work_agreement, ingest_work_offer, ingest_work_registry_state,
+    ingest_agent_profile, ingest_agent_record, ingest_community_record, ingest_experience_manifest,
+    ingest_identity_state, ingest_receipt, ingest_service_record, ingest_skill_manifest,
+    ingest_skill_registry_state, ingest_work_agreement, ingest_work_offer, ingest_work_registry_state,
 };
 use crate::models::{
     AgentProfileIngest, AgentProfileLookup, AgentRecordIngest, CommunityRecordIngest,
@@ -83,7 +83,10 @@ async fn main() -> Result<()> {
         .route("/ingest/agent_record", post(ingest_agent))
         .route("/ingest/agent_profile", post(ingest_agent_profile_handler))
         .route("/ingest/service_record", post(ingest_service))
-        .route("/ingest/experience_manifest", post(ingest_experience_manifest))
+        .route(
+            "/ingest/experience_manifest",
+            post(ingest_experience_manifest_handler),
+        )
         .route("/ingest/community_record", post(ingest_community))
         .route("/ingest/skill_manifest", post(ingest_skill))
         .route("/ingest/work_offer", post(ingest_work_offer_handler))
@@ -185,11 +188,11 @@ async fn ingest_skill(
     Ok(Json(json!({"status": "ok"})))
 }
 
-async fn ingest_experience_manifest(
+async fn ingest_experience_manifest_handler(
     State(state): State<Arc<IndexState>>,
     Json(payload): Json<SkillManifestIngest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    ingest_skill_manifest(state, payload)
+    ingest_experience_manifest(state, payload)
         .await
         .map_err(err_to_response)?;
     Ok(Json(json!({"status": "ok"})))

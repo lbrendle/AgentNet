@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import json
 import sys
 import urllib.error
@@ -12,6 +13,27 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "tools" / "app-manifest"))
 
 from app_manifest_lib import AppManifestError, build_manifest_from_app  # type: ignore
+
+
+def read_base64_key(path: Path) -> bytes:
+    data = path.read_text().strip()
+    if not data:
+        raise SystemExit(f"[experience] key file empty: {path}")
+    raw = base64.b64decode(data)
+    if len(raw) != 32:
+        raise SystemExit(f"[experience] key must be 32 bytes: {path}")
+    return raw
+
+
+def derive_public_key_hex(secret: bytes) -> str:
+    try:
+        from cryptography.hazmat.primitives.asymmetric import ed25519
+        from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
+    except Exception as exc:  # pragma: no cover
+        raise SystemExit(f"[experience] cryptography unavailable: {exc}")
+    private = ed25519.Ed25519PrivateKey.from_private_bytes(secret)
+    public_key = private.public_key().public_bytes(Encoding.Raw, PublicFormat.Raw)
+    return public_key.hex()
 
 
 def request_json(method: str, url: str, payload: dict) -> dict:
@@ -69,7 +91,9 @@ def main() -> None:
     manifest_bytes = result["manifest_bytes"]
 
     if args.publish:
-        payload = {"cbor_hex": manifest_bytes.hex()}
+        secret = read_base64_key(args.agent_key.expanduser())
+        public_key_hex = derive_public_key_hex(secret)
+        payload = {"cbor_hex": manifest_bytes.hex(), "public_key_hex": public_key_hex}
         request_json(
             "POST",
             args.index_url.rstrip("/") + "/ingest/experience_manifest",

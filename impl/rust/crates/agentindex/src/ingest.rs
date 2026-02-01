@@ -285,6 +285,51 @@ pub async fn ingest_skill_manifest(
     Ok(())
 }
 
+pub async fn ingest_experience_manifest(
+    state: Arc<IndexState>,
+    payload: SkillManifestIngest,
+) -> Result<()> {
+    if payload.public_key_hex.is_none() {
+        state.ensure_identity_loaded().await?;
+    }
+    let manifest_bytes = decode_hex("skill_manifest", &payload.cbor_hex)?;
+    let value = decode_canonical(&manifest_bytes).context("decode skill manifest cbor")?;
+    let manifest = anetsdk::parse_skill_manifest(&value).context("parse skill manifest")?;
+    let author = manifest.payload.author.clone();
+    let pk = resolve_pubkey(
+        &state,
+        &author,
+        payload.public_key_hex.as_deref(),
+        true,
+    )
+    .await?;
+    let verified_payload =
+        verify_skill_manifest(&manifest_bytes, &pk).context("verify skill manifest signature")?;
+    let manifest_hash_hex = hex::encode(sha256(&manifest_bytes));
+    let registry_record = state
+        .skill_registry_record(&verified_payload.skill_id)
+        .await;
+    if let Some(registry_record) = registry_record.as_ref() {
+        if registry_record.author != verified_payload.author {
+            return Err(anyhow!("skill registry author mismatch"));
+        }
+        if registry_record.revoked {
+            return Err(anyhow!("skill is revoked"));
+        }
+        if registry_record.manifest_hash_hex != manifest_hash_hex {
+            return Err(anyhow!("skill manifest hash mismatch with registry"));
+        }
+    }
+    let mut db = state.db_mut().await;
+    db.upsert_skill_manifest(
+        &verified_payload,
+        &hex::encode(&manifest_bytes),
+        &manifest_hash_hex,
+        registry_record.as_ref(),
+    )?;
+    Ok(())
+}
+
 pub async fn ingest_work_offer(state: Arc<IndexState>, payload: WorkOfferIngest) -> Result<()> {
     state.ensure_identity_loaded().await?;
     let offer_bytes = decode_hex("work_offer", &payload.cbor_hex)?;
