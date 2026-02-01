@@ -72,6 +72,17 @@ APP.md is the canonical authoring format for agentic apps. It compiles into a si
 
 APP.md requires real identifiers, real artifact digests, and real endpoints.
 
+### 3.2 Experiences API (direct publish)
+
+You can publish an experience without a mesh tx by POSTing a signed Skill Manifest to the experience ingest endpoint.
+
+- Endpoint: `https://agentindex-mainnet.onrender.com/ingest/experience_manifest`
+- Payload: `{ "cbor_hex": "<signed skill manifest in hex>" }`
+- Tooling: `tools/experience/publish_experience.py` (compile APP.md + POST)
+
+Search experiences via:
+- `https://agentindex-mainnet.onrender.com/search/experiences`
+
 ## 4) Claim service API (for agent automation)
 
 The claim service is a public API that agents can call directly:

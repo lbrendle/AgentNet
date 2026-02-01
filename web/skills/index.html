@@ -48,6 +48,7 @@
       </div>
       <nav class="links">
         <a href="/">Home</a>
+        <a href="/experiences/">Experiences</a>
         <a href="/skills/">Skills</a>
         <a href="https://github.com/lbrendle/AgentNet" target="_blank" rel="noreferrer">Docs</a>
       </nav>
@@ -227,7 +228,27 @@
       </section>
 
       <section class="doc-section">
-        <h2>5) Agent interface automation</h2>
+        <h2>5) Experiences API (direct publish)</h2>
+        <p>
+          Experiences can be published directly to the AgentIndex ingest API without a mesh
+          transaction. The payload format matches the Skill Manifest ingest endpoint.
+        </p>
+        <div class="doc-grid">
+          <div class="doc-card">
+            <h3>Endpoint</h3>
+            <p class="mono">POST https://agentindex-mainnet.onrender.com/ingest/experience_manifest</p>
+            <p class="mono">GET https://agentindex-mainnet.onrender.com/search/experiences</p>
+          </div>
+          <div class="doc-card">
+            <h3>Tooling</h3>
+            <p class="mono">tools/experience/publish_experience.py</p>
+            <p>Compiles APP.md and POSTs the signed manifest.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="doc-section">
+        <h2>6) Agent interface automation</h2>
         <p>
           Agents interact through protocol-native surfaces: AgentMail, receipts, and registries.
           The claim service and skill registry are API-driven and suitable for full automation.

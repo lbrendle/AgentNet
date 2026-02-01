@@ -92,57 +92,52 @@ def render_card(
     paired_handle: Optional[str] = None,
 ) -> None:
     W, H = 1200, 630
-    top = (10, 12, 18)
-    bottom = (16, 22, 34)
+    bg_top = (9, 12, 18)
+    bg_bottom = (14, 20, 30)
 
-    base = Image.new("RGB", (W, H), top)
+    base = Image.new("RGB", (W, H), bg_top)
     draw = ImageDraw.Draw(base)
     for y in range(H):
         t = y / (H - 1)
-        r = int(top[0] + (bottom[0] - top[0]) * t)
-        g = int(top[1] + (bottom[1] - top[1]) * t)
-        b = int(top[2] + (bottom[2] - top[2]) * t)
+        r = int(bg_top[0] + (bg_bottom[0] - bg_top[0]) * t)
+        g = int(bg_top[1] + (bg_bottom[1] - bg_top[1]) * t)
+        b = int(bg_top[2] + (bg_bottom[2] - bg_top[2]) * t)
         draw.line([(0, y), (W, y)], fill=(r, g, b))
 
     overlay = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     odraw = ImageDraw.Draw(overlay)
-    odraw.rectangle((0, 0, 120, H), fill=(255, 123, 84, 35))
-    odraw.ellipse((-220, -160, 520, 580), fill=(255, 123, 84, 90))
-    odraw.ellipse((760, -160, 1360, 440), fill=(91, 223, 255, 60))
-    odraw.ellipse((680, 260, 1300, 900), fill=(255, 209, 102, 60))
-    for x in range(0, W, 160):
-        odraw.line([(x, 0), (x, H)], fill=(255, 255, 255, 14))
-    for y in range(0, H, 160):
-        odraw.line([(0, y), (W, y)], fill=(255, 255, 255, 14))
+    for x in range(-200, W, 140):
+        odraw.line([(x, 0), (x + 260, H)], fill=(255, 255, 255, 10))
     base = Image.alpha_composite(base.convert("RGBA"), overlay)
 
-    panel = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-    pdraw = ImageDraw.Draw(panel)
-    panel_box = (60, 70, 1140, 560)
-    try:
-        pdraw.rounded_rectangle(panel_box, radius=32, fill=(13, 16, 24, 228), outline=(255, 255, 255, 40), width=2)
-    except Exception:
-        pdraw.rectangle(panel_box, fill=(13, 16, 24, 228), outline=(255, 255, 255, 40), width=2)
-    pdraw.rectangle((panel_box[0], panel_box[1], panel_box[2], panel_box[1] + 6), fill=(255, 123, 84, 200))
-    base = Image.alpha_composite(base, panel)
-
     draw = ImageDraw.Draw(base)
+    card_box = (70, 70, 1130, 560)
+    try:
+        draw.rounded_rectangle(
+            card_box,
+            radius=28,
+            fill=(16, 22, 32, 235),
+            outline=(60, 75, 92, 160),
+            width=2,
+        )
+    except Exception:
+        draw.rectangle(card_box, fill=(16, 22, 32, 235), outline=(60, 75, 92, 160), width=2)
 
-    font_title = load_font(
+    font_display = load_font(
         [
             "/System/Library/Fonts/Supplemental/Arial Bold.ttf",
             "/System/Library/Fonts/HelveticaNeue.ttc",
             "/System/Library/Fonts/Helvetica.ttc",
         ],
-        64,
+        50,
     )
     font_brand = load_font(
         [
-            "/System/Library/Fonts/NewYork.ttf",
             "/System/Library/Fonts/Supplemental/Arial Bold.ttf",
             "/System/Library/Fonts/HelveticaNeue.ttc",
+            "/System/Library/Fonts/Helvetica.ttc",
         ],
-        30,
+        26,
     )
     font_handle = load_font(
         [
@@ -150,7 +145,7 @@ def render_card(
             "/System/Library/Fonts/HelveticaNeue.ttc",
             "/System/Library/Fonts/Helvetica.ttc",
         ],
-        28,
+        26,
     )
     font_body = load_font(
         [
@@ -158,7 +153,7 @@ def render_card(
             "/System/Library/Fonts/HelveticaNeue.ttc",
             "/System/Library/Fonts/Helvetica.ttc",
         ],
-        30,
+        28,
     )
     font_label = load_font(
         [
@@ -166,7 +161,7 @@ def render_card(
             "/System/Library/Fonts/HelveticaNeue.ttc",
             "/System/Library/Fonts/Helvetica.ttc",
         ],
-        22,
+        20,
     )
     font_badge = load_font(
         [
@@ -174,51 +169,60 @@ def render_card(
             "/System/Library/Fonts/HelveticaNeue.ttc",
             "/System/Library/Fonts/Helvetica.ttc",
         ],
-        20,
+        18,
     )
     font_mono = load_font(
         [
             "/System/Library/Fonts/SFNSMono.ttf",
             "/System/Library/Fonts/Supplemental/Andale Mono.ttf",
         ],
-        22,
+        20,
     )
 
-    accent = (255, 123, 84)
-    accent_soft = (255, 209, 102)
-    accent_cool = (91, 223, 255)
-    text_main = (247, 242, 234)
-    text_sub = (178, 185, 198)
+    accent = (59, 214, 255)
+    accent_hot = (255, 123, 84)
+    text_main = (245, 246, 248)
+    text_sub = (171, 178, 190)
+    text_muted = (126, 136, 150)
 
     badge = "PAIRING" if mode == "pairing" else "AGENT"
     badge_w = draw.textlength(badge, font=font_badge)
-    badge_box = (panel_box[2] - badge_w - 88, panel_box[1] + 20, panel_box[2] - 44, panel_box[1] + 52)
+    badge_box = (
+        card_box[2] - badge_w - 70,
+        card_box[1] + 18,
+        card_box[2] - 32,
+        card_box[1] + 44,
+    )
     try:
-        draw.rounded_rectangle(badge_box, radius=14, fill=(255, 123, 84, 230), outline=None)
+        draw.rounded_rectangle(badge_box, radius=12, fill=(255, 123, 84, 235))
     except Exception:
-        draw.rectangle(badge_box, fill=(255, 123, 84, 230), outline=None)
-    draw.text((badge_box[0] + 18, badge_box[1] + 7), badge, fill=(18, 20, 28), font=font_badge)
+        draw.rectangle(badge_box, fill=(255, 123, 84, 235))
+    draw.text((badge_box[0] + 14, badge_box[1] + 5), badge, fill=(14, 18, 26), font=font_badge)
 
-    draw.text((panel_box[0] + 48, panel_box[1] + 18), "AgentNet", fill=text_main, font=font_brand)
-    draw.text((panel_box[0] + 48, panel_box[1] + 52), "MAINNET", fill=accent_soft, font=font_label)
+    brand_x = card_box[0] + 36
+    brand_y = card_box[1] + 18
+    draw.text((brand_x, brand_y), "AgentNet", fill=text_main, font=font_brand)
+    draw.text((brand_x, brand_y + 26), "MAINNET", fill=accent, font=font_label)
 
-    avatar_r = 36
-    avatar_x = panel_box[0] + 62
-    avatar_y = panel_box[1] + 108
+    avatar_r = 30
+    avatar_x = card_box[0] + 48
+    avatar_y = card_box[1] + 98
     draw.ellipse(
         (avatar_x - avatar_r, avatar_y - avatar_r, avatar_x + avatar_r, avatar_y + avatar_r),
-        fill=accent,
+        fill=accent_hot,
     )
     initial = (handle[:1] or "A").upper()
     ibox = draw.textbbox((0, 0), initial, font=font_handle)
     iw = ibox[2] - ibox[0]
     ih = ibox[3] - ibox[1]
-    draw.text((avatar_x - iw / 2, avatar_y - ih / 2 - 2), initial, fill=(15, 18, 25), font=font_handle)
+    draw.text((avatar_x - iw / 2, avatar_y - ih / 2 - 2), initial, fill=(18, 20, 28), font=font_handle)
 
-    name_x = avatar_x + avatar_r + 20
-    name_y = panel_box[1] + 80
-    draw.text((name_x, name_y), f"@{handle}", fill=text_main, font=font_title)
-    draw.text((name_x, name_y + 60), "AgentNet identity card", fill=text_sub, font=font_handle)
+    name_x = avatar_x + avatar_r + 18
+    name_y = card_box[1] + 74
+    display_name = agent_name if mode == "agent" else handle
+    draw.text((name_x, name_y), display_name, fill=text_main, font=font_display)
+    draw.text((name_x, name_y + 48), f"@{handle}", fill=text_muted, font=font_handle)
+    draw.text((name_x, name_y + 84), "AgentNet identity card", fill=text_sub, font=font_label)
 
     if mode == "pairing":
         headline = f"Paired with OpenClaw agent {agent_name} (id: {agent_id})."
@@ -240,18 +244,18 @@ def render_card(
             lines.append(current)
         return lines
 
-    body_x = panel_box[0] + 48
-    body_y = panel_box[1] + 200
-    for line in wrap_text(headline, panel_box[2] - panel_box[0] - 96):
+    body_x = card_box[0] + 48
+    body_y = card_box[1] + 200
+    for line in wrap_text(headline, card_box[2] - card_box[0] - 96):
         draw.text((body_x, body_y), line, fill=text_main, font=font_body)
-        body_y += 42
+        body_y += 38
 
     profile_url = f"agentnet-web.onrender.com/u/{handle}"
     did_display = agent_did
     if len(did_display) > 46:
         did_display = did_display[:28] + "..." + did_display[-12:]
 
-    meta_y = max(body_y + 12, panel_box[1] + 320)
+    meta_y = max(body_y + 8, card_box[1] + 320)
     meta = []
     if mode == "agent" and paired_handle:
         meta.append(("Paired human", f"@{paired_handle}"))
@@ -263,12 +267,12 @@ def render_card(
     label_width = max(draw.textlength(label, font=font_label) for label, _ in meta)
     for label, value in meta:
         draw.text((body_x, meta_y), label, fill=text_sub, font=font_label)
-        draw.text((body_x + label_width + 18, meta_y), value, fill=text_main, font=font_mono)
-        meta_y += 34
+        draw.text((body_x + label_width + 16, meta_y), value, fill=text_main, font=font_mono)
+        meta_y += 32
 
     footer = "agentnet-web.onrender.com"
     fw = draw.textlength(footer, font=font_label)
-    draw.text((panel_box[2] - 48 - fw, panel_box[3] - 38), footer, fill=text_sub, font=font_label)
+    draw.text((card_box[2] - 40 - fw, card_box[3] - 34), footer, fill=text_sub, font=font_label)
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
     base.convert("RGB").save(out_path, "PNG")
@@ -282,13 +286,20 @@ def render_html(
     paired_count: int,
     paired_summary: str,
     agent_handle: Optional[str] = None,
+    *,
+    mode: str = "pairing",
+    paired_handle: Optional[str] = None,
 ) -> str:
+    is_agent = mode == "agent"
     agent_link = f"/u/{agent_handle}/" if agent_handle else ""
-    agent_link_html = ""
-    if agent_link:
-        agent_link_html = f"""
+    paired_link = f"/u/{paired_handle}/" if paired_handle else ""
+    secondary_link = paired_link if is_agent else agent_link
+    secondary_label = "Pairing card" if is_agent else "Agent card"
+    secondary_link_html = ""
+    if secondary_link:
+        secondary_link_html = f"""
             <span class="dot">|</span>
-            <a href="{agent_link}">Agent card</a>"""
+            <a href="{secondary_link}">{secondary_label}</a>"""
     paired_block = ""
     if paired_summary != "unknown":
         paired_block = f"""
@@ -296,6 +307,23 @@ def render_html(
             <span class=\"label\">Paired Devices</span>
             <div class=\"agent-id\">{paired_count} ({paired_summary})</div>
           </div>"""
+    paired_human_block = ""
+    if is_agent and paired_handle:
+        paired_human_block = f"""
+          <div>
+            <span class=\"label\">Paired human</span>
+            <div class=\"agent-id\">@{paired_handle}</div>
+          </div>"""
+    description = (
+        f"@{handle} is the AgentNet identity for OpenClaw agent {agent_name} ({agent_id})."
+        if is_agent
+        else f"@{handle} is paired with the OpenClaw agent {agent_name} ({agent_id})."
+    )
+    if is_agent and paired_handle:
+        description = f"{description} Paired with @{paired_handle}."
+    card_label = "Agent Card" if is_agent else "Pairing Card"
+    card_label_lower = card_label.lower()
+    link_line = f"agentnet-web.onrender.com/u/{handle}"
     return f"""<!doctype html>
 <html lang=\"en\">
   <head>
@@ -304,28 +332,28 @@ def render_html(
     <title>@{handle} - AgentNet</title>
     <meta
       name=\"description\"
-      content=\"@{handle} is paired with the OpenClaw agent {agent_name} ({agent_id}) for autonomous work and collaboration.\"
+      content=\"{description}\"
     />
     <meta property=\"og:title\" content=\"@{handle} - AgentNet\" />
     <meta
       property=\"og:description\"
-      content=\"@{handle} is paired with the OpenClaw agent {agent_name} ({agent_id}) for autonomous work and collaboration.\"
+      content=\"{description}\"
     />
     <meta property=\"og:type\" content=\"profile\" />
     <meta property=\"og:site_name\" content=\"AgentNet\" />
     <meta property=\"og:url\" content=\"https://agentnet-web.onrender.com/u/{handle}/\" />
     <meta property=\"og:image\" content=\"https://agentnet-web.onrender.com/u/{handle}/card.png\" />
-    <meta property=\"og:image:alt\" content=\"AgentNet pairing card for @{handle}\" />
+    <meta property=\"og:image:alt\" content=\"AgentNet {card_label_lower} for @{handle}\" />
     <meta property=\"og:image:width\" content=\"1200\" />
     <meta property=\"og:image:height\" content=\"630\" />
     <meta name=\"twitter:card\" content=\"summary_large_image\" />
     <meta name=\"twitter:title\" content=\"@{handle} - AgentNet\" />
     <meta
       name=\"twitter:description\"
-      content=\"@{handle} is paired with the OpenClaw agent {agent_name} ({agent_id}) for autonomous work and collaboration.\"
+      content=\"{description}\"
     />
     <meta name=\"twitter:image\" content=\"https://agentnet-web.onrender.com/u/{handle}/card.png\" />
-    <meta name=\"twitter:image:alt\" content=\"AgentNet pairing card for @{handle}\" />
+    <meta name=\"twitter:image:alt\" content=\"AgentNet {card_label_lower} for @{handle}\" />
     <meta name=\"twitter:creator\" content=\"@{handle}\" />
     <meta name=\"twitter:site\" content=\"@AgentNet\" />
     <link rel=\"canonical\" href=\"https://agentnet-web.onrender.com/u/{handle}/\" />
@@ -458,6 +486,7 @@ def render_html(
       </div>
       <nav class=\"links\">
         <a href=\"/\">Directory</a>
+        <a href=\"/experiences/\">Experiences</a>
         <a href=\"https://github.com/lbrendle/AgentNet\" target=\"_blank\" rel=\"noreferrer\">Docs</a>
       </nav>
     </header>
@@ -465,9 +494,9 @@ def render_html(
     <main class=\"profile-shell\">
       <section class=\"profile-stack\">
         <div class=\"profile-title\">
-          <p class=\"eyebrow\">Pairing Card</p>
+          <p class=\"eyebrow\">{card_label}</p>
           <h1>@{handle}</h1>
-          <p class=\"lede\">Paired with OpenClaw agent {agent_name} ({agent_id}) for autonomous work and collaboration.</p>
+          <p class=\"lede\">{description}</p>
           <div class=\"profile-meta\">
             <div>
               <span class=\"label\">OpenClaw Agent</span>
@@ -480,12 +509,13 @@ def render_html(
           <div class=\"card-caption\">
             <span class=\"handle\">@{handle}</span>
             <span class=\"dot\">|</span>
-            <a href=\"https://x.com/{handle}\" target=\"_blank\" rel=\"noreferrer\">View on X</a>{agent_link_html}
+            <a href=\"https://x.com/{handle}\" target=\"_blank\" rel=\"noreferrer\">View on X</a>{secondary_link_html}
           </div>
+          {f'<div class="card-caption">Paired human <a href="{paired_link}">@{paired_handle}</a></div>' if is_agent and paired_handle else ''}
         </div>
         <div class=\"card-actions\">
           <a class=\"button primary\" href=\"https://x.com/{handle}\" target=\"_blank\" rel=\"noreferrer\">Visit on X</a>
-          {f'<a class="button ghost" href="{agent_link}">View Agent Card</a>' if agent_link else ''}
+          {f'<a class="button ghost" href="{secondary_link}">View {secondary_label}</a>' if secondary_link else ''}
         </div>
         <div class=\"share-row\">
           <button
@@ -504,10 +534,11 @@ def render_html(
             <span class=\"label\">Agent DID</span>
             <div class=\"agent-id\">{agent_did}</div>
           </div>
+          {paired_human_block}
           {paired_block}
           <div>
             <span class=\"label\">Profile URL</span>
-            <div class=\"agent-id\">agentnet-web.onrender.com/u/{handle}</div>
+            <div class=\"agent-id\">{link_line}</div>
           </div>
         </div>
       </section>
@@ -648,6 +679,8 @@ def main() -> None:
             paired_count,
             paired_summary,
             agent_handle=args.agent_handle,
+            mode=args.mode,
+            paired_handle=args.paired_handle,
         )
         + "\n"
     )

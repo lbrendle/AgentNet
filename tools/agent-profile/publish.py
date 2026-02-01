@@ -108,6 +108,8 @@ def main() -> None:
 
     secret = read_base64_key(args.agent_key)
     private = ed25519.Ed25519PrivateKey.from_private_bytes(secret)
+    public_key = private.public_key().public_bytes(Encoding.Raw, PublicFormat.Raw)
+    public_key_hex = public_key.hex()
 
     now = int(time.time())
     exp = now + int(args.expires_sec)
@@ -149,6 +151,7 @@ def main() -> None:
     if args.publish:
         payload = {
             "cbor_hex": record_cbor.hex(),
+            "public_key_hex": public_key_hex,
         }
         request_json(
             "POST",

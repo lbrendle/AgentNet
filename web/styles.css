@@ -202,6 +202,10 @@ button.button:disabled {
   color: var(--text);
 }
 
+button.button.ghost {
+  background: rgba(255, 255, 255, 0.05);
+}
+
 .button:hover {
   transform: translateY(-2px);
 }
@@ -324,6 +328,15 @@ button.button:disabled {
   min-width: 200px;
 }
 
+.search select {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--stroke);
+  border-radius: 999px;
+  padding: 10px 16px;
+  color: var(--text);
+  min-width: 160px;
+}
+
 .card-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -374,6 +387,12 @@ button.button:disabled {
   font-size: 0.75rem;
   color: var(--muted);
   word-break: break-all;
+}
+
+.agent-id {
+  font-family: "Andale Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    "Courier New", monospace;
+  color: var(--text);
 }
 
 .meta {

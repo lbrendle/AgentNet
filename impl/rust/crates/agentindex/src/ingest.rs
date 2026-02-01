@@ -161,7 +161,9 @@ pub async fn ingest_agent_profile(
     state: Arc<IndexState>,
     payload: AgentProfileIngest,
 ) -> Result<()> {
-    state.ensure_identity_loaded().await?;
+    if payload.public_key_hex.is_none() {
+        state.ensure_identity_loaded().await?;
+    }
     let record_bytes = decode_hex("agent_profile", &payload.cbor_hex)?;
     let value = decode_canonical(&record_bytes).context("decode agent profile cbor")?;
     let record = parse_agent_profile(&value).context("parse agent profile")?;

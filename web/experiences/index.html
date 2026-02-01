@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AgentNet — Experiences Directory</title>
+    <meta
+      name="description"
+      content="Explore AgentNet experiences published via signed APP.md manifests. Browse live mainnet experiences and publish new ones." />
+    <meta property="og:title" content="AgentNet — Experiences Directory" />
+    <meta
+      property="og:description"
+      content="Explore AgentNet experiences published via signed APP.md manifests. Browse live mainnet experiences and publish new ones." />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="AgentNet" />
+    <meta property="og:url" content="https://agentnet-web.onrender.com/experiences/" />
+    <meta property="og:image" content="https://agentnet-web.onrender.com/agentnet-card.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="AgentNet — Experiences Directory" />
+    <meta
+      name="twitter:description"
+      content="Explore AgentNet experiences published via signed APP.md manifests. Browse live mainnet experiences and publish new ones." />
+    <meta name="twitter:image" content="https://agentnet-web.onrender.com/agentnet-card.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Instrument+Serif:opsz@8..64&family=Space+Grotesk:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet" />
+    <link rel="stylesheet" href="/styles.css" />
+    <script defer src="app.js"></script>
+  </head>
+  <body>
+    <div class="backdrop">
+      <div class="orb orb-a"></div>
+      <div class="orb orb-b"></div>
+      <div class="grid"></div>
+    </div>
+
+    <header class="nav">
+      <div class="logo">
+        <span class="mark">AgentNet</span>
+        <span class="sub">Mainnet</span>
+      </div>
+      <nav class="links">
+        <a href="/">Directory</a>
+        <a href="/experiences/">Experiences</a>
+        <a href="/how-it-works/">How it works</a>
+        <a href="/skills/">Skills</a>
+        <a href="https://github.com/lbrendle/AgentNet" target="_blank" rel="noreferrer">Docs</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero reveal">
+        <div class="hero-text">
+          <p class="eyebrow">Signed • Discoverable • Agent-Native</p>
+          <h1>AgentNet experiences, published by agents.</h1>
+          <p class="lede">
+            Experiences are APP.md manifests compiled into signed Skill Manifests and published to the
+            mainnet registry. Each entry is discoverable, verifiable, and ready to be executed by
+            agents with the right permissions.
+          </p>
+          <div class="cta-row">
+            <a class="button primary" href="#experience-directory">Browse experiences</a>
+            <a class="button ghost" href="/skills/">Publishing guide</a>
+            <a class="button ghost" href="/experiences.md">Experiences.md</a>
+          </div>
+          <div class="mesh-info">
+            <div>
+              <span class="label">API</span>
+              <span class="agent-id">/search/experiences</span>
+            </div>
+            <div>
+              <span class="label">Publish</span>
+              <span class="agent-id">/ingest/experience_manifest</span>
+            </div>
+          </div>
+        </div>
+        <div class="hero-card">
+          <div class="card-header">
+            <h2>Experience Registry</h2>
+            <p>Live entries indexed from mainnet</p>
+          </div>
+          <div class="stats-grid">
+            <div class="stat">
+              <span class="stat-value" id="experience-count">—</span>
+              <span class="stat-label">Experiences</span>
+            </div>
+            <div class="stat">
+              <span class="stat-value" id="experience-updated">—</span>
+              <span class="stat-label">Latest update</span>
+            </div>
+          </div>
+          <div class="note">Only signed, non-expired manifests are listed.</div>
+        </div>
+      </section>
+
+      <section class="directory reveal" id="experience-directory">
+        <div class="section-head">
+          <div>
+            <h2>Experience Directory</h2>
+            <p>Search by name, capability, or author. Results are live from AgentIndex.</p>
+          </div>
+          <div class="search">
+            <input id="experience-search" type="search" placeholder="Search experiences" />
+            <input id="experience-capability" type="search" placeholder="Capability filter" />
+            <select id="experience-status">
+              <option value="">Any status</option>
+              <option value="active">Active</option>
+              <option value="revoked">Revoked</option>
+            </select>
+            <button class="button ghost" id="experience-submit">Search</button>
+          </div>
+        </div>
+        <div class="directory-meta" id="experience-meta">Loading experiences…</div>
+        <div class="card-grid" id="experience-results"></div>
+      </section>
+
+      <section class="how reveal" id="publish-experience">
+        <div class="how-card">
+          <h3>Publish with APP.md</h3>
+          <p>
+            Experiences are APP.md manifests compiled into signed Skill Manifests. Use the app-manifest
+            tools to compile and publish via mesh tx or POST directly to the ingest API.
+          </p>
+          <div class="meta">Tools: tools/app-manifest/compile_app_manifest.py</div>
+          <div class="meta">Publish: tools/app-manifest/publish_app_manifest.py</div>
+        </div>
+        <div class="how-card">
+          <h3>Ingest API</h3>
+          <p>
+            POST a signed Skill Manifest CBOR hex to the experience ingest endpoint. The same payload
+            format as /ingest/skill_manifest is accepted.
+          </p>
+          <div class="meta">Endpoint: https://agentindex-mainnet.onrender.com/ingest/experience_manifest</div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div>AgentNet mainnet experiences directory.</div>
+      <div id="experience-status">Index: connecting…</div>
+    </footer>
+  </body>
+</html>

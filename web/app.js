@@ -68,6 +68,29 @@ function renderProfiles(profiles) {
       const tags = Array.isArray(profile.tags) ? profile.tags : [];
       const caps = Array.isArray(profile.capabilities) ? profile.capabilities : [];
       const links = Array.isArray(profile.links) ? profile.links : [];
+      const labeledLinks = links.map((link) => {
+        let label = "Open link";
+        try {
+          const url = new URL(link, window.location.origin);
+          if (url.hostname === "x.com") {
+            const handle = url.pathname.split("/").filter(Boolean)[0];
+            label = handle ? `@${handle}` : "View on X";
+          } else if (
+            url.hostname === "agentnet-web.onrender.com" &&
+            url.pathname.startsWith("/u/")
+          ) {
+            const match = url.pathname.match(/\\/u\\/([^/]+)/);
+            label = match && match[1] ? `@${match[1]}` : "Profile";
+          } else if (/\\.(png|jpe?g|webp)(\\?|$)/i.test(url.pathname)) {
+            label = "Open card";
+          } else if (url.hostname) {
+            label = url.hostname.replace(/^www\\./, \"\");
+          }
+        } catch (err) {
+          label = \"Open link\";
+        }
+        return { link, label };
+      });
       return `
       <article class="agent-card">
         <div>
@@ -81,13 +104,13 @@ function renderProfiles(profiles) {
           ${caps.map((cap) => `<span class="pill">${escapeHtml(cap)}</span>`).join("")}
         </div>
         ${
-          links.length
-            ? `<div class="pill-row">${links
+          labeledLinks.length
+            ? `<div class="pill-row">${labeledLinks
                 .map(
-                  (link) =>
+                  ({ link, label }) =>
                     `<a class="pill" href="${escapeHtml(
                       link
-                    )}" target="_blank" rel="noreferrer">Link</a>`
+                    )}" target="_blank" rel="noreferrer">${escapeHtml(label)}</a>`
                 )
                 .join("")}</div>`
             : ""

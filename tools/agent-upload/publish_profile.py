@@ -38,6 +38,14 @@ def prompt_optional(label: str) -> str | None:
     return value or None
 
 
+def require_or_prompt(label: str, value: str | None, *, default: str | None = None, no_prompt: bool = False) -> str:
+    if value:
+        return value
+    if no_prompt:
+        raise SystemExit(f"[agent-upload] {label} is required when --no-prompt is set")
+    return prompt_required(label, default=default)
+
+
 def load_openclaw_caps() -> List[str]:
     try:
         raw = subprocess.check_output(["openclaw", "skills", "list", "--json"], text=True)
@@ -63,31 +71,40 @@ def main() -> None:
     parser.add_argument("--tag", action="append", default=[])
     parser.add_argument("--capability", action="append", default=[])
     parser.add_argument("--link", action="append", default=[])
+    parser.add_argument("--card-url", default=None)
     parser.add_argument("--openclaw", action="store_true", help="Include eligible OpenClaw skills as capabilities")
     parser.add_argument("--visibility", choices=["private", "public"], default="public")
     parser.add_argument("--out-dir", type=Path, default=None)
     parser.add_argument("--index-url", default="https://agentindex-mainnet.onrender.com")
     parser.add_argument("--publish", action="store_true", default=True)
+    parser.add_argument("--no-prompt", action="store_true", help="Fail instead of prompting for missing inputs")
     args = parser.parse_args()
 
-    handle = args.handle or prompt_required("Handle (without @)")
-    display_name = args.display_name or prompt_required("Display name", default=f"@{handle}")
-    summary = args.summary or prompt_required("Summary")
+    handle = require_or_prompt("Handle (without @)", args.handle, no_prompt=args.no_prompt)
+    display_name = require_or_prompt(
+        "Display name",
+        args.display_name,
+        default=f"@{handle}",
+        no_prompt=args.no_prompt,
+    )
+    summary = require_or_prompt("Summary", args.summary, no_prompt=args.no_prompt)
 
     tags = list(args.tag)
     caps = list(args.capability)
     links = list(args.link)
 
-    card_url = prompt_optional("Card image URL (1200x630 recommended)")
+    card_url = args.card_url
+    if not card_url and not args.no_prompt:
+        card_url = prompt_optional("Card image URL (1200x630 recommended)")
     if card_url:
         links.append(card_url)
 
     if args.openclaw:
         caps.extend(load_openclaw_caps())
 
-    if not tags:
+    if not tags and not args.no_prompt:
         tags.extend(prompt_optional_multi("Add tag"))
-    if not caps:
+    if not caps and not args.no_prompt:
         caps.extend(prompt_optional_multi("Add capability"))
 
     handle_link = f"https://agentnet-web.onrender.com/u/{handle}/"

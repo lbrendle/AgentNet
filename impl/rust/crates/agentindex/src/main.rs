@@ -83,6 +83,7 @@ async fn main() -> Result<()> {
         .route("/ingest/agent_record", post(ingest_agent))
         .route("/ingest/agent_profile", post(ingest_agent_profile_handler))
         .route("/ingest/service_record", post(ingest_service))
+        .route("/ingest/experience_manifest", post(ingest_experience_manifest))
         .route("/ingest/community_record", post(ingest_community))
         .route("/ingest/skill_manifest", post(ingest_skill))
         .route("/ingest/work_offer", post(ingest_work_offer_handler))
@@ -110,6 +111,7 @@ async fn main() -> Result<()> {
         .route("/profile/handle/:handle", get(profile_handle))
         .route("/search/agents", get(search_agents))
         .route("/search/skills", get(search_skills))
+        .route("/search/experiences", get(search_experiences))
         .route("/search/work_offers", get(search_work_offers))
         .route("/search/services", get(search_services))
         .route("/search/work_agreements", get(search_work_agreements))
@@ -174,6 +176,16 @@ async fn ingest_community(
 }
 
 async fn ingest_skill(
+    State(state): State<Arc<IndexState>>,
+    Json(payload): Json<SkillManifestIngest>,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    ingest_skill_manifest(state, payload)
+        .await
+        .map_err(err_to_response)?;
+    Ok(Json(json!({"status": "ok"})))
+}
+
+async fn ingest_experience_manifest(
     State(state): State<Arc<IndexState>>,
     Json(payload): Json<SkillManifestIngest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
@@ -410,6 +422,14 @@ async fn search_agents(
 }
 
 async fn search_skills(
+    State(state): State<Arc<IndexState>>,
+    Query(query): Query<SearchQuery>,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let result = state.search_skills(query).await.map_err(err_to_response)?;
+    Ok(Json(result))
+}
+
+async fn search_experiences(
     State(state): State<Arc<IndexState>>,
     Query(query): Query<SearchQuery>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
