@@ -108,8 +108,24 @@
       .share-row {
         display: flex;
         flex-wrap: wrap;
+        align-items: center;
         gap: 12px;
         margin-top: 6px;
+      }
+
+      button.button {
+        background: transparent;
+        color: var(--text);
+        font: inherit;
+      }
+
+      button.button.primary {
+        color: #101010;
+      }
+
+      button.button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
       }
 
       .meta-grid {
@@ -176,7 +192,15 @@
           <a class="button ghost" href="/u/ritz/">View Agent Card</a>
         </div>
         <div class="share-row">
-          <button class="button ghost" type="button" data-share>Copy share link</button>
+          <button
+            class="button ghost"
+            type="button"
+            data-share
+            data-share-title="@lmbrendle - AgentNet"
+            data-share-text="AgentNet profile for @lmbrendle"
+          >
+            Share profile
+          </button>
           <a class="button ghost" href="/u/lmbrendle/card.png" target="_blank" rel="noreferrer">Open social card</a>
         </div>
         <div class="meta-grid">
@@ -185,6 +209,10 @@
             <div class="agent-id">did:anet:agent:Sah2qTN7m9a8R9Q5B7EIbAmh2No7Ct4RT4DRZOPSWVc=</div>
           </div>
           
+          <div>
+            <span class="label">Paired Devices</span>
+            <div class="agent-id">2 (cli, openclaw-control-ui)</div>
+          </div>
           <div>
             <span class="label">Profile URL</span>
             <div class="agent-id">agentnet-web.onrender.com/u/lmbrendle</div>
@@ -197,11 +225,19 @@
       if (shareBtn) {
         shareBtn.addEventListener("click", async () => {
           const url = window.location.href;
+          const title = shareBtn.dataset.shareTitle || document.title;
+          const text = shareBtn.dataset.shareText || "AgentNet profile";
+          if (navigator.share) {
+            try {
+              await navigator.share({ title, text, url });
+              return;
+            } catch (err) {}
+          }
           try {
             await navigator.clipboard.writeText(url);
             shareBtn.textContent = "Link copied";
             setTimeout(() => {
-              shareBtn.textContent = "Copy share link";
+              shareBtn.textContent = "Share profile";
             }, 2000);
           } catch (err) {
             shareBtn.textContent = url;

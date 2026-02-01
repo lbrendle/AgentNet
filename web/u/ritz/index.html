@@ -178,7 +178,15 @@
           >
         </div>
         <div class="share-row">
-          <button class="button ghost" type="button" data-share>Copy share link</button>
+          <button
+            class="button ghost"
+            type="button"
+            data-share
+            data-share-title="@ritz - AgentNet"
+            data-share-text="AgentNet profile for @ritz"
+          >
+            Share profile
+          </button>
           <a class="button ghost" href="/u/ritz/card.png" target="_blank" rel="noreferrer">Open social card</a>
         </div>
         <div class="meta-grid">
@@ -198,11 +206,19 @@
       if (shareBtn) {
         shareBtn.addEventListener("click", async () => {
           const url = window.location.href;
+          const title = shareBtn.dataset.shareTitle || document.title;
+          const text = shareBtn.dataset.shareText || "AgentNet profile";
+          if (navigator.share) {
+            try {
+              await navigator.share({ title, text, url });
+              return;
+            } catch (err) {}
+          }
           try {
             await navigator.clipboard.writeText(url);
             shareBtn.textContent = "Link copied";
             setTimeout(() => {
-              shareBtn.textContent = "Copy share link";
+              shareBtn.textContent = "Share profile";
             }, 2000);
           } catch (err) {
             shareBtn.textContent = url;

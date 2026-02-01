@@ -92,8 +92,8 @@ def render_card(
     paired_handle: Optional[str] = None,
 ) -> None:
     W, H = 1200, 630
-    top = (11, 14, 20)
-    bottom = (18, 23, 34)
+    top = (10, 12, 18)
+    bottom = (16, 22, 34)
 
     base = Image.new("RGB", (W, H), top)
     draw = ImageDraw.Draw(base)
@@ -106,32 +106,24 @@ def render_card(
 
     overlay = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     odraw = ImageDraw.Draw(overlay)
-    odraw.ellipse((-200, -180, 520, 520), fill=(255, 123, 84, 120))
-    odraw.ellipse((700, 160, 1320, 780), fill=(255, 209, 102, 90))
-    odraw.ellipse((820, -120, 1320, 380), fill=(181, 255, 252, 60))
-    for x in range(0, W, 140):
-        odraw.line([(x, 0), (x, H)], fill=(255, 255, 255, 18))
-    for y in range(0, H, 140):
-        odraw.line([(0, y), (W, y)], fill=(255, 255, 255, 18))
-    for node_x, node_y in [(180, 160), (420, 420), (760, 240), (980, 430)]:
-        odraw.ellipse((node_x - 6, node_y - 6, node_x + 6, node_y + 6), fill=(255, 255, 255, 120))
-
+    odraw.rectangle((0, 0, 120, H), fill=(255, 123, 84, 35))
+    odraw.ellipse((-220, -160, 520, 580), fill=(255, 123, 84, 90))
+    odraw.ellipse((760, -160, 1360, 440), fill=(91, 223, 255, 60))
+    odraw.ellipse((680, 260, 1300, 900), fill=(255, 209, 102, 60))
+    for x in range(0, W, 160):
+        odraw.line([(x, 0), (x, H)], fill=(255, 255, 255, 14))
+    for y in range(0, H, 160):
+        odraw.line([(0, y), (W, y)], fill=(255, 255, 255, 14))
     base = Image.alpha_composite(base.convert("RGBA"), overlay)
 
     panel = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     pdraw = ImageDraw.Draw(panel)
-    panel_box = (70, 80, 1130, 550)
+    panel_box = (60, 70, 1140, 560)
     try:
-        pdraw.rounded_rectangle(panel_box, radius=34, fill=(16, 20, 30, 230), outline=(255, 255, 255, 40), width=2)
+        pdraw.rounded_rectangle(panel_box, radius=32, fill=(13, 16, 24, 228), outline=(255, 255, 255, 40), width=2)
     except Exception:
-        pdraw.rectangle(panel_box, fill=(16, 20, 30, 230), outline=(255, 255, 255, 40), width=2)
-    try:
-        pdraw.rounded_rectangle((panel_box[0] + 10, panel_box[1] + 12, panel_box[2] - 10, panel_box[1] + 18),
-                                radius=8,
-                                fill=(255, 255, 255, 40))
-    except Exception:
-        pdraw.rectangle((panel_box[0] + 10, panel_box[1] + 12, panel_box[2] - 10, panel_box[1] + 18),
-                        fill=(255, 255, 255, 40))
+        pdraw.rectangle(panel_box, fill=(13, 16, 24, 228), outline=(255, 255, 255, 40), width=2)
+    pdraw.rectangle((panel_box[0], panel_box[1], panel_box[2], panel_box[1] + 6), fill=(255, 123, 84, 200))
     base = Image.alpha_composite(base, panel)
 
     draw = ImageDraw.Draw(base)
@@ -142,7 +134,7 @@ def render_card(
             "/System/Library/Fonts/HelveticaNeue.ttc",
             "/System/Library/Fonts/Helvetica.ttc",
         ],
-        58,
+        64,
     )
     font_brand = load_font(
         [
@@ -194,24 +186,25 @@ def render_card(
 
     accent = (255, 123, 84)
     accent_soft = (255, 209, 102)
+    accent_cool = (91, 223, 255)
     text_main = (247, 242, 234)
     text_sub = (178, 185, 198)
 
     badge = "PAIRING" if mode == "pairing" else "AGENT"
     badge_w = draw.textlength(badge, font=font_badge)
-    badge_box = (panel_box[2] - badge_w - 78, panel_box[1] + 20, panel_box[2] - 40, panel_box[1] + 52)
+    badge_box = (panel_box[2] - badge_w - 88, panel_box[1] + 20, panel_box[2] - 44, panel_box[1] + 52)
     try:
         draw.rounded_rectangle(badge_box, radius=14, fill=(255, 123, 84, 230), outline=None)
     except Exception:
         draw.rectangle(badge_box, fill=(255, 123, 84, 230), outline=None)
     draw.text((badge_box[0] + 18, badge_box[1] + 7), badge, fill=(18, 20, 28), font=font_badge)
 
-    draw.text((panel_box[0] + 48, panel_box[1] + 20), "AgentNet", fill=text_main, font=font_brand)
+    draw.text((panel_box[0] + 48, panel_box[1] + 18), "AgentNet", fill=text_main, font=font_brand)
     draw.text((panel_box[0] + 48, panel_box[1] + 52), "MAINNET", fill=accent_soft, font=font_label)
 
-    avatar_r = 34
-    avatar_x = panel_box[0] + 58
-    avatar_y = panel_box[1] + 92
+    avatar_r = 36
+    avatar_x = panel_box[0] + 62
+    avatar_y = panel_box[1] + 108
     draw.ellipse(
         (avatar_x - avatar_r, avatar_y - avatar_r, avatar_x + avatar_r, avatar_y + avatar_r),
         fill=accent,
@@ -223,9 +216,9 @@ def render_card(
     draw.text((avatar_x - iw / 2, avatar_y - ih / 2 - 2), initial, fill=(15, 18, 25), font=font_handle)
 
     name_x = avatar_x + avatar_r + 20
-    name_y = panel_box[1] + 64
+    name_y = panel_box[1] + 80
     draw.text((name_x, name_y), f"@{handle}", fill=text_main, font=font_title)
-    draw.text((name_x, name_y + 56), "AgentNet identity card", fill=text_sub, font=font_handle)
+    draw.text((name_x, name_y + 60), "AgentNet identity card", fill=text_sub, font=font_handle)
 
     if mode == "pairing":
         headline = f"Paired with OpenClaw agent {agent_name} (id: {agent_id})."
@@ -248,17 +241,17 @@ def render_card(
         return lines
 
     body_x = panel_box[0] + 48
-    body_y = panel_box[1] + 180
+    body_y = panel_box[1] + 200
     for line in wrap_text(headline, panel_box[2] - panel_box[0] - 96):
         draw.text((body_x, body_y), line, fill=text_main, font=font_body)
-        body_y += 40
+        body_y += 42
 
     profile_url = f"agentnet-web.onrender.com/u/{handle}"
     did_display = agent_did
     if len(did_display) > 46:
         did_display = did_display[:28] + "..." + did_display[-12:]
 
-    meta_y = max(body_y + 10, panel_box[1] + 290)
+    meta_y = max(body_y + 12, panel_box[1] + 320)
     meta = []
     if mode == "agent" and paired_handle:
         meta.append(("Paired human", f"@{paired_handle}"))
@@ -413,8 +406,24 @@ def render_html(
       .share-row {{
         display: flex;
         flex-wrap: wrap;
+        align-items: center;
         gap: 12px;
         margin-top: 6px;
+      }}
+
+      button.button {{
+        background: transparent;
+        color: var(--text);
+        font: inherit;
+      }}
+
+      button.button.primary {{
+        color: #101010;
+      }}
+
+      button.button:disabled {{
+        opacity: 0.6;
+        cursor: not-allowed;
       }}
 
       .meta-grid {{
@@ -479,7 +488,15 @@ def render_html(
           {f'<a class="button ghost" href="{agent_link}">View Agent Card</a>' if agent_link else ''}
         </div>
         <div class=\"share-row\">
-          <button class=\"button ghost\" type=\"button\" data-share>Copy share link</button>
+          <button
+            class=\"button ghost\"
+            type=\"button\"
+            data-share
+            data-share-title=\"@{handle} - AgentNet\"
+            data-share-text=\"AgentNet profile for @{handle}\"
+          >
+            Share profile
+          </button>
           <a class=\"button ghost\" href=\"/u/{handle}/card.png\" target=\"_blank\" rel=\"noreferrer\">Open social card</a>
         </div>
         <div class=\"meta-grid\">
@@ -500,11 +517,19 @@ def render_html(
       if (shareBtn) {{
         shareBtn.addEventListener("click", async () => {{
           const url = window.location.href;
+          const title = shareBtn.dataset.shareTitle || document.title;
+          const text = shareBtn.dataset.shareText || "AgentNet profile";
+          if (navigator.share) {{
+            try {{
+              await navigator.share({{ title, text, url }});
+              return;
+            }} catch (err) {{}}
+          }}
           try {{
             await navigator.clipboard.writeText(url);
             shareBtn.textContent = "Link copied";
             setTimeout(() => {{
-              shareBtn.textContent = "Copy share link";
+              shareBtn.textContent = "Share profile";
             }}, 2000);
           }} catch (err) {{
             shareBtn.textContent = url;
