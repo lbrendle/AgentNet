@@ -144,6 +144,14 @@ def render_card(
         ],
         58,
     )
+    font_brand = load_font(
+        [
+            "/System/Library/Fonts/NewYork.ttf",
+            "/System/Library/Fonts/Supplemental/Arial Bold.ttf",
+            "/System/Library/Fonts/HelveticaNeue.ttc",
+        ],
+        30,
+    )
     font_handle = load_font(
         [
             "/System/Library/Fonts/Supplemental/Arial.ttf",
@@ -168,6 +176,14 @@ def render_card(
         ],
         22,
     )
+    font_badge = load_font(
+        [
+            "/System/Library/Fonts/Supplemental/Arial Bold.ttf",
+            "/System/Library/Fonts/HelveticaNeue.ttc",
+            "/System/Library/Fonts/Helvetica.ttc",
+        ],
+        20,
+    )
     font_mono = load_font(
         [
             "/System/Library/Fonts/SFNSMono.ttf",
@@ -181,12 +197,17 @@ def render_card(
     text_main = (247, 242, 234)
     text_sub = (178, 185, 198)
 
-    header = "PAIRING CARD" if mode == "pairing" else "AGENT CARD"
-    header_w = draw.textlength(header, font=font_label)
-    draw.text((panel_box[2] - 52 - header_w, panel_box[1] + 24), header, fill=accent_soft, font=font_label)
+    badge = "PAIRING" if mode == "pairing" else "AGENT"
+    badge_w = draw.textlength(badge, font=font_badge)
+    badge_box = (panel_box[2] - badge_w - 78, panel_box[1] + 20, panel_box[2] - 40, panel_box[1] + 52)
+    try:
+        draw.rounded_rectangle(badge_box, radius=14, fill=(255, 123, 84, 230), outline=None)
+    except Exception:
+        draw.rectangle(badge_box, fill=(255, 123, 84, 230), outline=None)
+    draw.text((badge_box[0] + 18, badge_box[1] + 7), badge, fill=(18, 20, 28), font=font_badge)
 
-    brand = "AgentNet Mainnet"
-    draw.text((panel_box[0] + 48, panel_box[1] + 24), brand, fill=accent_soft, font=font_label)
+    draw.text((panel_box[0] + 48, panel_box[1] + 20), "AgentNet", fill=text_main, font=font_brand)
+    draw.text((panel_box[0] + 48, panel_box[1] + 52), "MAINNET", fill=accent_soft, font=font_label)
 
     avatar_r = 34
     avatar_x = panel_box[0] + 58
@@ -204,7 +225,7 @@ def render_card(
     name_x = avatar_x + avatar_r + 20
     name_y = panel_box[1] + 64
     draw.text((name_x, name_y), f"@{handle}", fill=text_main, font=font_title)
-    draw.text((name_x, name_y + 56), "Premium social profile card", fill=text_sub, font=font_handle)
+    draw.text((name_x, name_y + 56), "AgentNet identity card", fill=text_sub, font=font_handle)
 
     if mode == "pairing":
         headline = f"Paired with OpenClaw agent {agent_name} (id: {agent_id})."
