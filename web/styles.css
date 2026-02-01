@@ -1,19 +1,20 @@
 :root {
   color-scheme: only light;
-  --bg: #0b0e14;
-  --ink: #0e1116;
-  --text: #f7f2ea;
-  --muted: rgba(255, 255, 255, 0.65);
-  --accent: #ff7b54;
-  --accent-2: #ffd166;
-  --surface: rgba(255, 255, 255, 0.08);
-  --surface-strong: rgba(255, 255, 255, 0.14);
-  --stroke: rgba(255, 255, 255, 0.18);
-  --shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
-  --radius: 22px;
+  --bg: #0a0c12;
+  --ink: #0d1118;
+  --text: #f6f1ea;
+  --muted: rgba(255, 255, 255, 0.68);
+  --accent: #ff6a3d;
+  --accent-2: #7cf6e2;
+  --surface: rgba(16, 22, 34, 0.78);
+  --surface-strong: rgba(22, 30, 44, 0.9);
+  --stroke: rgba(255, 255, 255, 0.12);
+  --shadow: 0 24px 70px rgba(5, 7, 12, 0.55);
+  --radius: 20px;
   --font-sans: "Space Grotesk", "SF Pro Text", sans-serif;
   --font-serif: "Instrument Serif", "Times New Roman", serif;
-  --page-pad: 8vw;
+  --page-width: 1200px;
+  --page-pad: clamp(22px, 6vw, 90px);
 }
 
 * {
@@ -23,9 +24,10 @@
 body {
   margin: 0;
   font-family: var(--font-sans);
-  background: radial-gradient(1200px 800px at 20% 10%, #24304a 0%, transparent 60%),
-    radial-gradient(800px 600px at 70% 0%, #3b1c32 0%, transparent 55%),
-    linear-gradient(180deg, #0b0e14 0%, #101521 100%);
+  background: radial-gradient(950px 650px at 12% 12%, rgba(124, 246, 226, 0.16) 0%, transparent 60%),
+    radial-gradient(1100px 720px at 88% -12%, rgba(255, 106, 61, 0.2) 0%, transparent 55%),
+    radial-gradient(900px 650px at 70% 85%, rgba(78, 116, 255, 0.12) 0%, transparent 60%),
+    linear-gradient(180deg, #0a0c12 0%, #0f1420 100%);
   color: var(--text);
   min-height: 100vh;
   overflow-x: hidden;
@@ -41,26 +43,26 @@ body {
 .orb {
   position: absolute;
   border-radius: 50%;
-  filter: blur(0px);
-  opacity: 0.55;
+  filter: blur(10px);
+  opacity: 0.45;
   mix-blend-mode: screen;
   animation: float 12s ease-in-out infinite;
 }
 
 .orb-a {
-  width: 420px;
-  height: 420px;
-  background: radial-gradient(circle, #ff7b54 0%, transparent 60%);
-  top: -120px;
-  left: -120px;
+  width: 460px;
+  height: 460px;
+  background: radial-gradient(circle, rgba(255, 106, 61, 0.85) 0%, transparent 62%);
+  top: -140px;
+  left: -140px;
 }
 
 .orb-b {
-  width: 520px;
-  height: 520px;
-  background: radial-gradient(circle, #b5fffc 0%, transparent 60%);
-  bottom: -220px;
-  right: -160px;
+  width: 560px;
+  height: 560px;
+  background: radial-gradient(circle, rgba(124, 246, 226, 0.8) 0%, transparent 62%);
+  bottom: -240px;
+  right: -190px;
   animation-delay: -4s;
 }
 
@@ -68,12 +70,12 @@ body {
   position: absolute;
   inset: 0;
   background-image: linear-gradient(
-      rgba(255, 255, 255, 0.05) 1px,
+      rgba(255, 255, 255, 0.035) 1px,
       transparent 1px
     ),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
-  background-size: 80px 80px;
-  opacity: 0.3;
+    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+  background-size: 96px 96px;
+  opacity: 0.2;
 }
 
 .nav {
@@ -83,10 +85,14 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 24px var(--page-pad);
-  backdrop-filter: blur(12px);
-  background: rgba(10, 12, 18, 0.6);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 20px var(--page-pad);
+  width: 100%;
+  max-width: var(--page-width);
+  margin: 0 auto;
+  backdrop-filter: blur(18px) saturate(140%);
+  background: rgba(8, 12, 20, 0.72);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 18px 40px rgba(4, 6, 12, 0.4);
   gap: 16px;
   flex-wrap: wrap;
 }
@@ -112,9 +118,22 @@ body {
 
 .links {
   display: flex;
-  gap: 18px;
+  gap: 12px;
   font-size: 14px;
   flex-wrap: wrap;
+}
+
+.links a {
+  position: relative;
+  padding: 6px 10px;
+  border-radius: 999px;
+  color: var(--muted);
+  transition: color 0.2s ease, background 0.2s ease;
+}
+
+.links a:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 a {
@@ -123,45 +142,53 @@ a {
 }
 
 a:hover {
-  color: var(--accent-2);
+  color: var(--accent);
 }
 
 main {
   position: relative;
   z-index: 2;
   padding: 48px var(--page-pad) 80px;
+  width: 100%;
+  max-width: var(--page-width);
+  margin: 0 auto;
 }
 
 .hero {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 32px;
+  gap: 36px;
   align-items: center;
+}
+
+.hero-text {
+  max-width: 560px;
 }
 
 .hero h1 {
   font-family: var(--font-serif);
-  font-size: clamp(2.4rem, 5vw, 4.2rem);
-  line-height: 1.05;
+  font-size: clamp(2.5rem, 5vw, 4.4rem);
+  line-height: 1.02;
   margin: 0 0 16px;
+  text-wrap: balance;
 }
 
 .lede {
   color: var(--muted);
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   margin: 0 0 24px;
 }
 
 .eyebrow {
   text-transform: uppercase;
-  letter-spacing: 0.3em;
+  letter-spacing: 0.26em;
   font-size: 0.7rem;
   color: var(--accent-2);
 }
 
 .cta-row {
   display: flex;
-  gap: 16px;
+  gap: 12px;
   flex-wrap: wrap;
   margin-bottom: 24px;
 }
@@ -170,12 +197,13 @@ main {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 12px 22px;
+  padding: 12px 20px;
   border-radius: 999px;
   border: 1px solid transparent;
   font-weight: 600;
+  letter-spacing: 0.02em;
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
 button.button {
@@ -196,30 +224,35 @@ button.button:disabled {
 }
 
 .button.primary {
-  background: linear-gradient(120deg, var(--accent), var(--accent-2));
-  color: #101010;
-  box-shadow: 0 12px 30px rgba(255, 123, 84, 0.35);
+  background: linear-gradient(120deg, rgba(255, 106, 61, 0.95), rgba(124, 246, 226, 0.9));
+  color: #0b0e14;
+  box-shadow: 0 14px 34px rgba(255, 106, 61, 0.25);
 }
 
 .button.ghost {
-  border-color: var(--stroke);
-  color: var(--text);
+  border-color: rgba(255, 255, 255, 0.14);
+  color: var(--muted);
 }
 
 button.button.ghost {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .button:hover {
   transform: translateY(-2px);
 }
 
+.button:focus-visible {
+  outline: 2px solid rgba(124, 246, 226, 0.6);
+  outline-offset: 2px;
+}
+
 .hero-card {
   position: relative;
-  background: var(--surface);
-  border: 1px solid var(--stroke);
+  background: linear-gradient(160deg, rgba(16, 22, 34, 0.95), rgba(10, 14, 22, 0.92));
+  border: 1px solid rgba(124, 246, 226, 0.18);
   border-radius: var(--radius);
-  padding: 24px;
+  padding: 26px;
   box-shadow: var(--shadow);
   overflow: hidden;
 }
@@ -227,11 +260,11 @@ button.button.ghost {
 .hero-card::after {
   content: "";
   position: absolute;
-  right: -80px;
-  top: -60px;
-  width: 220px;
-  height: 220px;
-  background: radial-gradient(circle, rgba(255, 209, 102, 0.35), transparent 60%);
+  right: -120px;
+  top: -90px;
+  width: 260px;
+  height: 260px;
+  background: radial-gradient(circle, rgba(124, 246, 226, 0.35), transparent 60%);
   pointer-events: none;
 }
 
@@ -243,14 +276,15 @@ button.button.ghost {
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 16px;
+  gap: 14px;
   margin-top: 20px;
 }
 
 .stat {
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 16px;
   padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .stat-value {
@@ -276,6 +310,8 @@ button.button.ghost {
   display: grid;
   gap: 8px;
   font-size: 0.85rem;
+  padding-left: 14px;
+  border-left: 2px solid rgba(124, 246, 226, 0.35);
 }
 
 .mesh-info .label {
@@ -300,7 +336,8 @@ button.button.ghost {
 }
 
 .how-card {
-  background: linear-gradient(140deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.04));
+  background: linear-gradient(160deg, rgba(20, 30, 44, 0.88), rgba(10, 14, 22, 0.95));
+  border: 1px solid rgba(124, 246, 226, 0.12);
 }
 
 .section-head {
@@ -314,7 +351,8 @@ button.button.ghost {
 
 .section-head h2 {
   margin: 0 0 6px;
-  font-size: 2rem;
+  font-size: 2.1rem;
+  font-family: var(--font-serif);
 }
 
 .search {
@@ -324,18 +362,18 @@ button.button.ghost {
 }
 
 .search input {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.06);
   border: 1px solid var(--stroke);
-  border-radius: 999px;
+  border-radius: 14px;
   padding: 10px 16px;
   color: var(--text);
   min-width: 200px;
 }
 
 .search select {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.06);
   border: 1px solid var(--stroke);
-  border-radius: 999px;
+  border-radius: 14px;
   padding: 10px 16px;
   color: var(--text);
   min-width: 160px;
@@ -348,20 +386,21 @@ button.button.ghost {
 }
 
 .agent-card {
-  background: var(--surface);
+  background: linear-gradient(160deg, rgba(16, 22, 34, 0.92), rgba(10, 14, 22, 0.94));
   border-radius: var(--radius);
-  border: 1px solid var(--stroke);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   padding: 18px;
   display: flex;
   flex-direction: column;
   gap: 12px;
   box-shadow: var(--shadow);
-  transition: transform 0.2s ease, border-color 0.2s ease;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .agent-card:hover {
-  transform: translateY(-4px);
-  border-color: rgba(255, 209, 102, 0.4);
+  transform: translateY(-6px);
+  border-color: rgba(124, 246, 226, 0.4);
+  box-shadow: 0 28px 60px rgba(4, 8, 16, 0.6);
 }
 
 .agent-card h3 {
@@ -383,7 +422,7 @@ button.button.ghost {
 .pill {
   padding: 6px 10px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.08);
   font-size: 0.75rem;
 }
 
@@ -411,10 +450,10 @@ button.button.ghost {
 }
 
 .step {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(16, 22, 34, 0.8);
   border-radius: 16px;
   padding: 16px;
-  border: 1px solid var(--stroke);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .step-index {
@@ -425,7 +464,7 @@ button.button.ghost {
 
 .code-card {
   margin-top: 24px;
-  background: rgba(16, 20, 32, 0.8);
+  background: rgba(10, 14, 22, 0.9);
   border-radius: 16px;
   border: 1px solid var(--stroke);
   padding: 16px;
@@ -456,6 +495,9 @@ pre {
   flex-wrap: wrap;
   gap: 12px;
   color: var(--muted);
+  width: 100%;
+  max-width: var(--page-width);
+  margin: 0 auto;
 }
 
 .divider {
