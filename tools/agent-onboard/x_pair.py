@@ -166,17 +166,31 @@ def main() -> None:
         return
 
     deadline = time.time() + args.wait_sec
-    while time.time() < deadline:
-        status = request_json("GET", claim_url, api_key=api_key)
-        if status.get("status") == "issued" and status.get("voucher_hex"):
-            if out_dir:
-                (out_dir / "voucher.hex").write_text(status["voucher_hex"] + "\n")
-                write_json(out_dir / "claim-issued.json", status)
-            print(json.dumps(status, indent=2))
-            return
-        time.sleep(max(1, int(args.poll_sec)))
+    try:
+        while time.time() < deadline:
+            try:
+                status = request_json("GET", claim_url, api_key=api_key)
+            except ClaimError as exc:
+                message = str(exc)
+                if "502" in message or "x api search failed" in message:
+                    print(f"[x-pair] claim service temporary error: {message}", file=sys.stderr)
+                    time.sleep(max(2, int(args.poll_sec)))
+                    continue
+                raise
+            if status.get("status") == "issued" and status.get("voucher_hex"):
+                if out_dir:
+                    (out_dir / "voucher.hex").write_text(status["voucher_hex"] + "\n")
+                    write_json(out_dir / "claim-issued.json", status)
+                print(json.dumps(status, indent=2))
+                return
+            time.sleep(max(1, int(args.poll_sec)))
+    except KeyboardInterrupt:
+        print("[x-pair] interrupted; claim is still pending. Re-run to continue polling.", file=sys.stderr)
+        print(json.dumps({"claim_url": claim_url}, indent=2))
+        return
 
-    raise SystemExit("[x-pair] claim voucher not issued within wait window")
+    print("[x-pair] claim voucher not issued within wait window", file=sys.stderr)
+    print(json.dumps({"claim_url": claim_url}, indent=2))
 
 
 if __name__ == "__main__":
