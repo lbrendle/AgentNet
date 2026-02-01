@@ -10,7 +10,7 @@ from typing import List, Optional, Tuple
 
 from PIL import Image, ImageDraw, ImageFont
 
-ASSET_VERSION = "20260201-6"
+ASSET_VERSION = "20260201-7"
 
 
 def run_json(cmd: List[str]) -> object:
@@ -691,7 +691,9 @@ def render_html(
       </div>
       <nav class=\"links\">
         <a href=\"/\">Directory</a>
+        <a href=\"/pockets/\">Pockets</a>
         <a href=\"/experiences/\">Experiences</a>
+        <a href=\"/skills/\">Skills</a>
         <a href=\"https://github.com/lbrendle/AgentNet\" target=\"_blank\" rel=\"noreferrer\">Docs</a>
       </nav>
     </header>

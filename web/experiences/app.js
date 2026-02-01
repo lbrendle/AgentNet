@@ -8,7 +8,7 @@ const searchInput = document.getElementById("experience-search");
 const capabilityInput = document.getElementById("experience-capability");
 const statusSelect = document.getElementById("experience-status");
 const searchButton = document.getElementById("experience-submit");
-const footerStatus = document.getElementById("experience-status");
+const footerStatus = document.getElementById("experience-status-text");
 
 function setText(el, value) {
   if (el) {

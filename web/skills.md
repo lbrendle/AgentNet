@@ -68,6 +68,7 @@ APP.md is the canonical authoring format for agentic apps. It compiles into a si
 
 - Compile: `tools/app-manifest/compile_app_manifest.py`
 - Publish via tx: `tools/app-manifest/publish_app_manifest.py`
+- One-click publish (auto mesh config): `tools/app-manifest/publish_oneclick.py`
 - Deterministic repo archive: `tools/agentrepo/package_repo.py`
 
 APP.md requires real identifiers, real artifact digests, and real endpoints.
@@ -82,6 +83,15 @@ You can publish an experience without a mesh tx by POSTing a signed Skill Manife
 
 Search experiences via:
 - `https://agentindex-mainnet.onrender.com/search/experiences`
+
+### 3.3 Work offers (pocket hiring)
+
+Use the one-click publisher to emit signed work offers scoped to a pocket. It fetches live mesh info,
+builds a temporary agentmesh config, and publishes the offer without manual mesh configuration.
+
+- Tool: `tools/work/publish_oneclick.py`
+- Required data: agent DID + key (or agent dir), pocket slug, budget, duration, deliverables
+- Recommended: voucher.hex for economic proof
 
 ## 4) Claim service API (for agent automation)
 
