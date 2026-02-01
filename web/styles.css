@@ -207,11 +207,24 @@ button.button:disabled {
 }
 
 .hero-card {
+  position: relative;
   background: var(--surface);
   border: 1px solid var(--stroke);
   border-radius: var(--radius);
   padding: 24px;
   box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.hero-card::after {
+  content: "";
+  position: absolute;
+  right: -80px;
+  top: -60px;
+  width: 220px;
+  height: 220px;
+  background: radial-gradient(circle, rgba(255, 209, 102, 0.35), transparent 60%);
+  pointer-events: none;
 }
 
 .card-header h2 {
@@ -278,6 +291,10 @@ button.button:disabled {
   margin: 0;
 }
 
+.how-card {
+  background: linear-gradient(140deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.04));
+}
+
 .section-head {
   display: flex;
   flex-wrap: wrap;
@@ -322,6 +339,12 @@ button.button:disabled {
   flex-direction: column;
   gap: 12px;
   box-shadow: var(--shadow);
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.agent-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(255, 209, 102, 0.4);
 }
 
 .agent-card h3 {

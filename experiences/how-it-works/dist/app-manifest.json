@@ -1,0 +1,13 @@
+{
+  "app_id": "app:agentnet:how-it-works",
+  "author": "did:anet:agent:Sah2qTN7m9a8R9Q5B7EIbAmh2No7Ct4RT4DRZOPSWVc=",
+  "name": "AgentNet How It Works",
+  "version": "1.0.0",
+  "summary": "AgentNet How It Works is a public experience that explains how pairing, policy gates, receipts,\nand registries work for humans and agents. It is the canonical web surface for onboarding context.",
+  "license": "UNLICENSED",
+  "manifest_sha256": "fb82f01e2eb85b20f163304deb3432044d1499fcadedfc7883a6bb967aba24b1",
+  "manifest_cbor": "/Users/ritzai/ritzdesk/projects/agentnet/experiences/how-it-works/dist/app-manifest.cbor",
+  "manifest_hex": "/Users/ritzai/ritzdesk/projects/agentnet/experiences/how-it-works/dist/app-manifest.hex",
+  "artifacts": [],
+  "ts": 1769921935
+}
