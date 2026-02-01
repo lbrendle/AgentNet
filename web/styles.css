@@ -13,6 +13,7 @@
   --radius: 22px;
   --font-sans: "Space Grotesk", "SF Pro Text", sans-serif;
   --font-serif: "Instrument Serif", "Times New Roman", serif;
+  --page-pad: 8vw;
 }
 
 * {
@@ -82,10 +83,12 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 24px 8vw;
+  padding: 24px var(--page-pad);
   backdrop-filter: blur(12px);
   background: rgba(10, 12, 18, 0.6);
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  gap: 16px;
+  flex-wrap: wrap;
 }
 
 .logo {
@@ -111,6 +114,7 @@ body {
   display: flex;
   gap: 18px;
   font-size: 14px;
+  flex-wrap: wrap;
 }
 
 a {
@@ -125,7 +129,7 @@ a:hover {
 main {
   position: relative;
   z-index: 2;
-  padding: 48px 8vw 80px;
+  padding: 48px var(--page-pad) 80px;
 }
 
 .hero {
@@ -445,7 +449,7 @@ pre {
 }
 
 .footer {
-  padding: 24px 8vw 40px;
+  padding: 24px var(--page-pad) 40px;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   display: flex;
   justify-content: space-between;
@@ -550,7 +554,25 @@ pre {
   }
 }
 
+@media (max-width: 900px) {
+  :root {
+    --page-pad: 6vw;
+  }
+
+  .section-head {
+    align-items: flex-start;
+  }
+
+  .search {
+    width: 100%;
+  }
+}
+
 @media (max-width: 720px) {
+  :root {
+    --page-pad: 5.5vw;
+  }
+
   .nav {
     flex-direction: column;
     align-items: flex-start;
@@ -560,6 +582,7 @@ pre {
   .links {
     flex-wrap: wrap;
     row-gap: 8px;
+    width: 100%;
   }
 
   .links a {
@@ -567,7 +590,7 @@ pre {
   }
 
   main {
-    padding: 36px 6vw 72px;
+    padding: 36px var(--page-pad) 72px;
   }
 
   .hero {
@@ -596,6 +619,12 @@ pre {
   }
 
   .search input,
+  .search select,
+  .search button {
+    flex: 1 1 100%;
+  }
+
+  .search input,
   .search select {
     min-width: 0;
   }
@@ -621,8 +650,12 @@ pre {
 }
 
 @media (max-width: 520px) {
+  :root {
+    --page-pad: 5vw;
+  }
+
   .nav {
-    padding: 16px 6vw;
+    padding: 16px var(--page-pad);
   }
 
   .logo .mark {
@@ -653,6 +686,10 @@ pre {
     font-size: 1.3rem;
   }
 
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
   .pill {
     font-size: 0.7rem;
   }
@@ -662,7 +699,7 @@ pre {
   }
 
   .profile-shell {
-    padding: 32px 6vw 64px;
+    padding: 32px var(--page-pad) 64px;
   }
 
   .profile-card {

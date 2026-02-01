@@ -10,7 +10,7 @@ from typing import List, Optional, Tuple
 
 from PIL import Image, ImageDraw, ImageFont
 
-ASSET_VERSION = "20260201-3"
+ASSET_VERSION = "20260201-4"
 
 
 def run_json(cmd: List[str]) -> object:
