@@ -10,6 +10,8 @@ from typing import List, Optional, Tuple
 
 from PIL import Image, ImageDraw, ImageFont
 
+ASSET_VERSION = "20260201-3"
+
 
 def run_json(cmd: List[str]) -> object:
     raw = subprocess.check_output(cmd, text=True)
@@ -363,7 +365,7 @@ def render_html(
       href=\"https://fonts.googleapis.com/css2?family=Instrument+Serif:opsz@8..64&family=Space+Grotesk:wght@300;400;500;600;700&display=swap\"
       rel=\"stylesheet\"
     />
-    <link rel=\"stylesheet\" href=\"/styles.css\" />
+    <link rel=\"stylesheet\" href=\"/styles.css?v={ASSET_VERSION}\" />
     <style>
       body {{
         min-height: 100vh;

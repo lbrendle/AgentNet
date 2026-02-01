@@ -557,7 +557,125 @@ pre {
     gap: 12px;
   }
 
+  .links {
+    flex-wrap: wrap;
+    row-gap: 8px;
+  }
+
+  .links a {
+    font-size: 13px;
+  }
+
+  main {
+    padding: 36px 6vw 72px;
+  }
+
+  .hero {
+    grid-template-columns: 1fr;
+  }
+
+  .cta-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .button {
+    width: 100%;
+  }
+
   .search input {
     width: 100%;
+  }
+
+  .search select {
+    width: 100%;
+  }
+
+  .search button {
+    width: 100%;
+  }
+
+  .search input,
+  .search select {
+    min-width: 0;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .card-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .steps,
+  .doc-grid,
+  .doc-steps {
+    grid-template-columns: 1fr;
+  }
+
+  .footer {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 520px) {
+  .nav {
+    padding: 16px 6vw;
+  }
+
+  .logo .mark {
+    font-size: 20px;
+  }
+
+  .logo .sub {
+    letter-spacing: 0.18em;
+  }
+
+  .hero h1 {
+    font-size: clamp(2rem, 8vw, 2.6rem);
+  }
+
+  .lede {
+    font-size: 1rem;
+  }
+
+  .section-head h2 {
+    font-size: 1.6rem;
+  }
+
+  .hero-card {
+    padding: 18px;
+  }
+
+  .stat-value {
+    font-size: 1.3rem;
+  }
+
+  .pill {
+    font-size: 0.7rem;
+  }
+
+  .agent-meta {
+    font-size: 0.7rem;
+  }
+
+  .profile-shell {
+    padding: 32px 6vw 64px;
+  }
+
+  .profile-card {
+    padding: 14px;
+  }
+
+  .card-actions,
+  .share-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .card-caption {
+    gap: 6px;
   }
 }
