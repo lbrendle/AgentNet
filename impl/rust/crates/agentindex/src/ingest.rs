@@ -143,7 +143,13 @@ pub async fn ingest_agent_record(state: Arc<IndexState>, payload: AgentRecordIng
     let value = decode_canonical(&record_bytes).context("decode agent record cbor")?;
     let record = parse_agent_record(&value).context("parse agent record")?;
     let agent_id = record.payload.agent_id.clone();
-    let pk = resolve_pubkey(&state, &agent_id, payload.public_key_hex.as_deref()).await?;
+    let pk = resolve_pubkey(
+        &state,
+        &agent_id,
+        payload.public_key_hex.as_deref(),
+        false,
+    )
+    .await?;
     if !record.payload.agent_pubkeys.iter().any(|k| k == &pk) {
         return Err(anyhow!("agent record missing active pubkey"));
     }
@@ -168,7 +174,13 @@ pub async fn ingest_agent_profile(
     let value = decode_canonical(&record_bytes).context("decode agent profile cbor")?;
     let record = parse_agent_profile(&value).context("parse agent profile")?;
     let agent_id = record.payload.agent_id.clone();
-    let pk = resolve_pubkey(&state, &agent_id, payload.public_key_hex.as_deref()).await?;
+    let pk = resolve_pubkey(
+        &state,
+        &agent_id,
+        payload.public_key_hex.as_deref(),
+        true,
+    )
+    .await?;
     let verified_payload =
         verify_agent_profile(&record_bytes, &pk).context("verify agent profile signature")?;
     ensure_not_expired(verified_payload.expires)?;
@@ -188,7 +200,13 @@ pub async fn ingest_service_record(
     let value = decode_canonical(&record_bytes).context("decode service record cbor")?;
     let record = parse_service_record(&value).context("parse service record")?;
     let provider_id = record.payload.provider_id.clone();
-    let pk = resolve_pubkey(&state, &provider_id, payload.public_key_hex.as_deref()).await?;
+    let pk = resolve_pubkey(
+        &state,
+        &provider_id,
+        payload.public_key_hex.as_deref(),
+        false,
+    )
+    .await?;
     let verified_payload =
         verify_service_record(&record_bytes, &pk).context("verify service record signature")?;
     ensure_not_expired(verified_payload.expires)?;
@@ -208,7 +226,13 @@ pub async fn ingest_community_record(
     let value = decode_canonical(&record_bytes).context("decode community record cbor")?;
     let record = parse_community_record(&value).context("parse community record")?;
     let controller = record.payload.controller.clone();
-    let pk = resolve_pubkey(&state, &controller, payload.public_key_hex.as_deref()).await?;
+    let pk = resolve_pubkey(
+        &state,
+        &controller,
+        payload.public_key_hex.as_deref(),
+        false,
+    )
+    .await?;
     let verified_payload =
         verify_community_record(&record_bytes, &pk).context("verify community record signature")?;
     ensure_not_expired(verified_payload.expires)?;
@@ -228,7 +252,13 @@ pub async fn ingest_skill_manifest(
     let value = decode_canonical(&manifest_bytes).context("decode skill manifest cbor")?;
     let manifest = anetsdk::parse_skill_manifest(&value).context("parse skill manifest")?;
     let author = manifest.payload.author.clone();
-    let pk = resolve_pubkey(&state, &author, payload.public_key_hex.as_deref()).await?;
+    let pk = resolve_pubkey(
+        &state,
+        &author,
+        payload.public_key_hex.as_deref(),
+        false,
+    )
+    .await?;
     let verified_payload =
         verify_skill_manifest(&manifest_bytes, &pk).context("verify skill manifest signature")?;
     let manifest_hash_hex = hex::encode(sha256(&manifest_bytes));
@@ -261,7 +291,13 @@ pub async fn ingest_work_offer(state: Arc<IndexState>, payload: WorkOfferIngest)
     let value = decode_canonical(&offer_bytes).context("decode work offer cbor")?;
     let offer = anetsdk::parse_work_offer(&value).context("parse work offer")?;
     let issuer = offer.payload.issuer.clone();
-    let pk = resolve_pubkey(&state, &issuer, payload.public_key_hex.as_deref()).await?;
+    let pk = resolve_pubkey(
+        &state,
+        &issuer,
+        payload.public_key_hex.as_deref(),
+        false,
+    )
+    .await?;
     let verified_payload =
         verify_work_offer(&offer_bytes, &pk).context("verify work offer signature")?;
     if verified_payload.exp <= now_ts() {
@@ -297,7 +333,13 @@ pub async fn ingest_work_agreement(
     let value = decode_canonical(&agreement_bytes).context("decode work agreement cbor")?;
     let agreement = anetsdk::parse_work_agreement(&value).context("parse work agreement")?;
     let issuer = agreement.payload.issuer.clone();
-    let pk = resolve_pubkey(&state, &issuer, payload.public_key_hex.as_deref()).await?;
+    let pk = resolve_pubkey(
+        &state,
+        &issuer,
+        payload.public_key_hex.as_deref(),
+        false,
+    )
+    .await?;
     let verified_payload =
         verify_work_agreement(&agreement_bytes, &pk).context("verify work agreement signature")?;
     let agreement_hash_hex = hex::encode(sha256(&agreement_bytes));
@@ -334,6 +376,7 @@ pub async fn ingest_receipt(state: Arc<IndexState>, payload: ReceiptIngest) -> R
         &state,
         &receipt_payload.actor,
         payload.public_key_hex.as_deref(),
+        false,
     )
     .await?;
     let receipt_hash = sha256(&receipt_payload_bytes);
@@ -388,6 +431,7 @@ async fn resolve_pubkey(
     state: &IndexState,
     did: &str,
     provided_hex: Option<&str>,
+    allow_unregistered: bool,
 ) -> Result<Vec<u8>> {
     let provided = match provided_hex {
         Some(hex) => Some(decode_hex("public_key", hex)?),
@@ -398,10 +442,18 @@ async fn resolve_pubkey(
             return Err(anyhow!("public key must be 32 bytes"));
         }
     }
-    let pk = state
-        .resolve_pubkey(did)
-        .await
-        .ok_or_else(|| anyhow!("identity not found for {did}"))?;
+    let pk = state.resolve_pubkey(did).await;
+    let pk = match pk {
+        Some(pk) => pk,
+        None => {
+            if allow_unregistered {
+                if let Some(provided_pk) = provided {
+                    return Ok(provided_pk);
+                }
+            }
+            return Err(anyhow!("identity not found for {did}"));
+        }
+    };
     if let Some(provided_pk) = provided {
         if pk != provided_pk {
             return Err(anyhow!("provided public key mismatch for {did}"));
