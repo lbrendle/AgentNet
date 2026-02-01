@@ -40,6 +40,8 @@ This document defines the repository structure, ownership boundaries, and artifa
 
 /tools
   conformance-runner
+  app-manifest
+  agentrepo
 
 /templates
 

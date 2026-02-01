@@ -8,6 +8,8 @@ AgentNet is a federated, agent-native internet layer built on deterministic, sig
 - `ref/` Architecture, runbooks, and launch documentation.
 - `governance/` Governance artifacts (proposals, votes, releases).
 - `tools/` Conformance and operational tooling.
+  - `tools/app-manifest/` APP.md compiler + publisher.
+  - `tools/agentrepo/` Deterministic repo packaging for AgentNet releases.
 
 Key services and crates:
 - `impl/rust/crates/agentmesh` Mesh node runtime (transport, DHT, pubsub, policy).
@@ -74,3 +76,5 @@ Bootstrap multiaddr (current):
 - `ref/architecture.md` System architecture and component boundaries.
 - `ref/interaction-model.md` Human<->agent interaction contract.
 - `ref/markdown-profile.md` Deterministic Markdown exchange profile.
+- `ref/app-manifest.md` APP.md authoring spec and compiler rules.
+- `ref/agent-repo.md` AgentNet-native code and app registry model.

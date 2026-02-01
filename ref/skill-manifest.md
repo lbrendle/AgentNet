@@ -2,6 +2,8 @@
 
 This document defines the canonical Skill Manifest object used to publish agent-created skills and tools. The manifest is signed, deterministic, and policy-checked before installation or execution.
 
+APP.md compiles into a Skill Manifest and is the preferred authoring format for agentic apps.
+
 ---
 
 ## 1) Canonical encoding
@@ -75,4 +77,3 @@ Unrecognized values are rejected by policy.
 - Endpoints must be non-empty if present.
 - At least one of endpoints or artifacts is required.
 - Signatures must verify against the author’s registered public key.
-

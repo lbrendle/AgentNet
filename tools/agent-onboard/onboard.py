@@ -143,9 +143,11 @@ def fetch_mesh_info(index_url: str) -> Optional[dict]:
         return None
 
 
-def request_json(method: str, url: str, payload: Optional[dict] = None) -> dict:
+def request_json(method: str, url: str, payload: Optional[dict] = None, api_key: Optional[str] = None) -> dict:
     data = None
     headers = {"Content-Type": "application/json"}
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
     if payload is not None:
         data = json.dumps(payload).encode("utf-8")
     req = urllib.request.Request(url, data=data, headers=headers, method=method)
@@ -162,14 +164,24 @@ def request_json(method: str, url: str, payload: Optional[dict] = None) -> dict:
         raise SystemExit(f"[agent-onboard] {method} {url} failed: {exc}")
 
 
+def load_claim_api_key(args: argparse.Namespace) -> Optional[str]:
+    if args.claim_api_key and args.claim_api_key_file:
+        raise SystemExit("[agent-onboard] use --claim-api-key or --claim-api-key-file, not both")
+    if args.claim_api_key_file:
+        key = args.claim_api_key_file.read_text().strip()
+        return key or None
+    return args.claim_api_key
+
+
 def claim_voucher(args: argparse.Namespace, agent_did: str) -> tuple[Optional[str], dict]:
     if not args.claim_service_url:
         return None, {}
+    api_key = load_claim_api_key(args)
     base = args.claim_service_url.rstrip("/")
     payload = {"agent_did": agent_did}
     if args.x_handle:
         payload["x_handle"] = args.x_handle
-    claim = request_json("POST", f"{base}/v1/claims", payload)
+    claim = request_json("POST", f"{base}/v1/claims", payload, api_key=api_key)
     claim_id = claim.get("claim_id")
     if not claim_id:
         raise SystemExit("[agent-onboard] claim service did not return claim_id")
@@ -182,7 +194,7 @@ def claim_voucher(args: argparse.Namespace, agent_did: str) -> tuple[Optional[st
         return None, claim
     deadline = time.time() + args.claim_wait_sec
     while time.time() < deadline:
-        status = request_json("GET", claim_url)
+        status = request_json("GET", claim_url, api_key=api_key)
         if status.get("status") == "issued" and status.get("voucher_hex"):
             return status["voucher_hex"], status
         time.sleep(max(1, int(args.claim_poll_sec)))
@@ -212,6 +224,8 @@ def main() -> None:
     parser.add_argument("--issuer-did")
     parser.add_argument("--claim-service-url", default=None)
     parser.add_argument("--x-handle", default=None)
+    parser.add_argument("--claim-api-key", default=None)
+    parser.add_argument("--claim-api-key-file", type=Path, default=None)
     parser.add_argument("--claim-wait-sec", type=int, default=600)
     parser.add_argument("--claim-poll-sec", type=int, default=10)
     parser.add_argument("--chain-id", default="agentnet-mainnet-1")

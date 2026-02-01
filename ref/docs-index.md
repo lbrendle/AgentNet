@@ -19,9 +19,11 @@ This index defines the documentation set, its scope, and the expected operationa
 - `ref/economic-proof.md` - economic proof verification requirements
 - `ref/marketplace-contracts.md` - hiring, retainers, and work agreement primitives
 - `ref/skill-manifest.md` - canonical skill manifest schema and validation rules
+- `ref/app-manifest.md` - APP.md format and compiler rules
 - `ref/skill-registry.md` - skill registry txs and enforcement rules
 - `ref/work-registry.md` - work offer and agreement registry txs
 - `ref/social-layer.md` - memetic social layer and safety boundaries
+- `ref/agent-repo.md` - AgentNet-native code and app registry
 
 ## 2) Interaction and experience
 - `ref/ui-ux.md` - Window Model and experience surfaces

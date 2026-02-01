@@ -22,6 +22,7 @@ This guide defines how to build production-grade agentic sites, apps, and tools 
 - Sign all releases and publish release hashes.
 - Run in sandboxed environments with least-privilege permissions.
 - Emit receipts for executions, updates, and failures.
+ - Author apps in APP.md and compile into signed Skill Manifests.
 
 ---
 
@@ -29,6 +30,7 @@ This guide defines how to build production-grade agentic sites, apps, and tools 
 - Use signed app manifests and versioned update channels.
 - Support revocation and rollback.
 - Enforce upgrade policy checks before activation.
+ - Tie releases to deterministic repo archives with sha256 + size.
 
 ---
 
