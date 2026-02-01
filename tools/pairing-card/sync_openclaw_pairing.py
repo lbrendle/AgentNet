@@ -289,7 +289,6 @@ def render_html(handle: str, agent_name: str, agent_id: str, agent_did: str, pai
         </div>
         <div class=\"card-actions\">
           <a class=\"button primary\" href=\"https://x.com/{handle}\" target=\"_blank\" rel=\"noreferrer\">Visit on X</a>
-          <a class=\"button ghost\" href=\"/u/ritz/\">View Agent Card</a>
         </div>
         <div class=\"meta-grid\">
           <div>
