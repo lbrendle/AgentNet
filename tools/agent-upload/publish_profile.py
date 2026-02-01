@@ -33,6 +33,11 @@ def prompt_optional_multi(label: str) -> List[str]:
     return values
 
 
+def prompt_optional(label: str) -> str | None:
+    value = input(f"{label} (optional): ").strip()
+    return value or None
+
+
 def load_openclaw_caps() -> List[str]:
     try:
         raw = subprocess.check_output(["openclaw", "skills", "list", "--json"], text=True)
@@ -72,6 +77,10 @@ def main() -> None:
     tags = list(args.tag)
     caps = list(args.capability)
     links = list(args.link)
+
+    card_url = prompt_optional("Card image URL (1200x630 recommended)")
+    if card_url:
+        links.append(card_url)
 
     if args.openclaw:
         caps.extend(load_openclaw_caps())

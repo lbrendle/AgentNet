@@ -18,10 +18,11 @@ use crate::models::{
 };
 use crate::state::IndexState;
 use anyhow::Result;
-use axum::extract::{Query, State};
+use axum::extract::{Path as AxumPath, Query, State};
 use axum::http::{Method, StatusCode};
 use axum::routing::{get, post};
 use axum::{Json, Router};
+use axum::response::Html;
 use clap::Parser;
 use serde_json::json;
 use std::net::SocketAddr;
@@ -106,6 +107,7 @@ async fn main() -> Result<()> {
         .route("/mesh/info", get(mesh_info_handler))
         .route("/directory/agents", get(directory_agents))
         .route("/directory/profile", get(directory_profile))
+        .route("/profile/handle/:handle", get(profile_handle))
         .route("/search/agents", get(search_agents))
         .route("/search/skills", get(search_skills))
         .route("/search/work_offers", get(search_work_offers))
@@ -289,6 +291,114 @@ async fn directory_profile(
         Some(result) => Ok(Json(result)),
         None => Err((StatusCode::NOT_FOUND, "profile not found".to_string())),
     }
+}
+
+async fn profile_handle(
+    State(state): State<Arc<IndexState>>,
+    AxumPath(handle): AxumPath<String>,
+) -> Result<Html<String>, (StatusCode, String)> {
+    let trimmed = handle.trim();
+    if trimmed.is_empty() {
+        return Err((StatusCode::BAD_REQUEST, "handle required".to_string()));
+    }
+    let base_url = std::env::var("AGENTNET_PROFILE_BASE_URL")
+        .unwrap_or_else(|_| "https://agentnet-web.onrender.com".to_string());
+    let handle_link = format!("{}/u/{}/", base_url, trimmed);
+
+    let profile = state
+        .agent_profile_by_link(&handle_link)
+        .await
+        .map_err(err_to_response)?;
+
+    let html = build_profile_html(trimmed, &base_url, &handle_link, profile.as_ref());
+    Ok(Html(html))
+}
+
+fn build_profile_html(
+    handle: &str,
+    base_url: &str,
+    handle_link: &str,
+    profile: Option<&serde_json::Value>,
+) -> String {
+    let display_name = profile
+        .and_then(|v| v.get("display_name"))
+        .and_then(|v| v.as_str())
+        .unwrap_or(handle);
+    let summary = profile
+        .and_then(|v| v.get("summary"))
+        .and_then(|v| v.as_str())
+        .unwrap_or("No public profile yet.");
+    let agent_id = profile
+        .and_then(|v| v.get("agent_id"))
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
+    let links = profile
+        .and_then(|v| v.get("links"))
+        .and_then(|v| v.as_array())
+        .cloned()
+        .unwrap_or_default();
+    let image_link = links.iter().find_map(|value| {
+        let link = value.as_str()?;
+        let lower = link.to_lowercase();
+        if lower.ends_with(".png")
+            || lower.ends_with(".jpg")
+            || lower.ends_with(".jpeg")
+            || lower.ends_with(".webp")
+        {
+            Some(link.to_string())
+        } else {
+            None
+        }
+    });
+    let og_image = image_link.unwrap_or_else(|| format!("{}/u/{}/card.png", base_url, handle));
+    let safe_title = html_escape(&format!("@{} — AgentNet", display_name));
+    let safe_desc = html_escape(summary);
+    let safe_image = html_escape(&og_image);
+    let safe_handle = html_escape(handle);
+    let safe_agent = html_escape(agent_id);
+    let safe_link = html_escape(handle_link);
+
+    format!(
+        r#"<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{safe_title}</title>
+    <meta name="description" content="{safe_desc}" />
+    <meta property="og:title" content="{safe_title}" />
+    <meta property="og:description" content="{safe_desc}" />
+    <meta property="og:type" content="profile" />
+    <meta property="og:site_name" content="AgentNet" />
+    <meta property="og:url" content="{safe_link}" />
+    <meta property="og:image" content="{safe_image}" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="{safe_title}" />
+    <meta name="twitter:description" content="{safe_desc}" />
+    <meta name="twitter:image" content="{safe_image}" />
+    <meta name="twitter:creator" content="@{safe_handle}" />
+    <meta name="twitter:site" content="@AgentNet" />
+    <link rel="canonical" href="{safe_link}" />
+  </head>
+  <body>
+    <main>
+      <h1>@{safe_handle}</h1>
+      <p>{safe_desc}</p>
+      <p>Agent DID: {safe_agent}</p>
+      <p>Profile: {safe_link}</p>
+    </main>
+  </body>
+</html>"#
+    )
+}
+
+fn html_escape(value: &str) -> String {
+    value
+        .replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('\"', "&quot;")
+        .replace('\'', "&#x27;")
 }
 
 async fn search_agents(
