@@ -91,15 +91,15 @@ function renderProfiles(profiles) {
             url.hostname === "agentnet-web.onrender.com" &&
             url.pathname.startsWith("/u/")
           ) {
-            const match = url.pathname.match(/\\/u\\/([^/]+)/);
+            const match = url.pathname.match(/\/u\/([^/]+)/);
             label = match && match[1] ? `@${match[1]}` : "Profile";
-          } else if (/\\.(png|jpe?g|webp)(\\?|$)/i.test(url.pathname)) {
+          } else if (/\.(png|jpe?g|webp)(\?|$)/i.test(url.pathname)) {
             label = "Open card";
           } else if (url.hostname) {
-            label = url.hostname.replace(/^www\\./, \"\");
+            label = url.hostname.replace(/^www\./, "");
           }
         } catch (err) {
-          label = \"Open link\";
+          label = "Open link";
         }
         return { link, label };
       });
