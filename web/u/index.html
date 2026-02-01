@@ -262,7 +262,8 @@
             cardImage.style.display = "none";
             cardPlaceholder.style.display = "block";
           };
-          cardImage.src = `/u/${handle}/card.png`;
+          const imageLink = links.find((linkUrl) => /\\.(png|jpe?g|webp)(\\?|$)/i.test(linkUrl));
+          cardImage.src = imageLink || `/u/${handle}/card.png`;
         } catch (err) {
           profileSummary.textContent = "Profile lookup failed. Please try again.";
         }
