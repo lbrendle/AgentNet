@@ -26,9 +26,12 @@ def run_json(cmd: List[str]) -> object:
 
 
 def load_openclaw_agent() -> Tuple[str, str, str]:
-    agents = run_json(["openclaw", "agents", "list", "--json"])
+    try:
+        agents = run_json(["openclaw", "agents", "list", "--json"])
+    except Exception:
+        agents = []
     if not isinstance(agents, list) or not agents:
-        raise SystemExit("[pairing-sync] no OpenClaw agents found")
+        return "agent", "main", str(Path.home() / ".openclaw" / "workspace")
     agent = None
     for entry in agents:
         if entry.get("isDefault"):
@@ -52,9 +55,12 @@ def load_openclaw_agent() -> Tuple[str, str, str]:
 
 
 def load_paired_devices() -> Tuple[int, str]:
-    devices = run_json(["openclaw", "devices", "list", "--json"])
+    try:
+        devices = run_json(["openclaw", "devices", "list", "--json"])
+    except Exception:
+        return 0, "unknown"
     if not isinstance(devices, dict):
-        return 0, "none"
+        return 0, "unknown"
     paired = devices.get("paired", [])
     if not isinstance(paired, list):
         return 0, "none"
@@ -86,30 +92,49 @@ def render_card(
     paired_handle: Optional[str] = None,
 ) -> None:
     W, H = 1200, 630
-    bg = (236, 240, 245)
-    base = Image.new("RGB", (W, H), bg)
+    top = (11, 14, 20)
+    bottom = (18, 23, 34)
 
-    shadow = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-    sdraw = ImageDraw.Draw(shadow)
-    card_box = (60, 70, 1140, 560)
-    try:
-        sdraw.rounded_rectangle(
-            (card_box[0] + 8, card_box[1] + 12, card_box[2] + 8, card_box[3] + 12),
-            radius=30,
-            fill=(0, 0, 0, 30),
-        )
-    except Exception:
-        sdraw.rectangle(
-            (card_box[0] + 8, card_box[1] + 12, card_box[2] + 8, card_box[3] + 12),
-            fill=(0, 0, 0, 30),
-        )
-
-    base = Image.alpha_composite(base.convert("RGBA"), shadow)
+    base = Image.new("RGB", (W, H), top)
     draw = ImageDraw.Draw(base)
+    for y in range(H):
+        t = y / (H - 1)
+        r = int(top[0] + (bottom[0] - top[0]) * t)
+        g = int(top[1] + (bottom[1] - top[1]) * t)
+        b = int(top[2] + (bottom[2] - top[2]) * t)
+        draw.line([(0, y), (W, y)], fill=(r, g, b))
+
+    overlay = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    odraw = ImageDraw.Draw(overlay)
+    odraw.ellipse((-200, -180, 520, 520), fill=(255, 123, 84, 120))
+    odraw.ellipse((700, 160, 1320, 780), fill=(255, 209, 102, 90))
+    odraw.ellipse((820, -120, 1320, 380), fill=(181, 255, 252, 60))
+    for x in range(0, W, 140):
+        odraw.line([(x, 0), (x, H)], fill=(255, 255, 255, 18))
+    for y in range(0, H, 140):
+        odraw.line([(0, y), (W, y)], fill=(255, 255, 255, 18))
+    for node_x, node_y in [(180, 160), (420, 420), (760, 240), (980, 430)]:
+        odraw.ellipse((node_x - 6, node_y - 6, node_x + 6, node_y + 6), fill=(255, 255, 255, 120))
+
+    base = Image.alpha_composite(base.convert("RGBA"), overlay)
+
+    panel = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    pdraw = ImageDraw.Draw(panel)
+    panel_box = (70, 80, 1130, 550)
     try:
-        draw.rounded_rectangle(card_box, radius=30, fill=(255, 255, 255), outline=(217, 223, 232), width=2)
+        pdraw.rounded_rectangle(panel_box, radius=34, fill=(16, 20, 30, 230), outline=(255, 255, 255, 40), width=2)
     except Exception:
-        draw.rectangle(card_box, fill=(255, 255, 255), outline=(217, 223, 232), width=2)
+        pdraw.rectangle(panel_box, fill=(16, 20, 30, 230), outline=(255, 255, 255, 40), width=2)
+    try:
+        pdraw.rounded_rectangle((panel_box[0] + 10, panel_box[1] + 12, panel_box[2] - 10, panel_box[1] + 18),
+                                radius=8,
+                                fill=(255, 255, 255, 40))
+    except Exception:
+        pdraw.rectangle((panel_box[0] + 10, panel_box[1] + 12, panel_box[2] - 10, panel_box[1] + 18),
+                        fill=(255, 255, 255, 40))
+    base = Image.alpha_composite(base, panel)
+
+    draw = ImageDraw.Draw(base)
 
     font_title = load_font(
         [
@@ -117,7 +142,7 @@ def render_card(
             "/System/Library/Fonts/HelveticaNeue.ttc",
             "/System/Library/Fonts/Helvetica.ttc",
         ],
-        42,
+        58,
     )
     font_handle = load_font(
         [
@@ -133,7 +158,7 @@ def render_card(
             "/System/Library/Fonts/HelveticaNeue.ttc",
             "/System/Library/Fonts/Helvetica.ttc",
         ],
-        28,
+        30,
     )
     font_label = load_font(
         [
@@ -151,31 +176,35 @@ def render_card(
         22,
     )
 
-    accent = (29, 155, 240)
-    text_main = (17, 23, 32)
-    text_sub = (92, 104, 120)
+    accent = (255, 123, 84)
+    accent_soft = (255, 209, 102)
+    text_main = (247, 242, 234)
+    text_sub = (178, 185, 198)
 
-    avatar_r = 38
-    avatar_x = card_box[0] + 48
-    avatar_y = card_box[1] + 48
+    header = "PAIRING CARD" if mode == "pairing" else "AGENT CARD"
+    header_w = draw.textlength(header, font=font_label)
+    draw.text((panel_box[2] - 52 - header_w, panel_box[1] + 24), header, fill=accent_soft, font=font_label)
+
+    brand = "AgentNet Mainnet"
+    draw.text((panel_box[0] + 48, panel_box[1] + 24), brand, fill=accent_soft, font=font_label)
+
+    avatar_r = 34
+    avatar_x = panel_box[0] + 58
+    avatar_y = panel_box[1] + 92
     draw.ellipse(
         (avatar_x - avatar_r, avatar_y - avatar_r, avatar_x + avatar_r, avatar_y + avatar_r),
         fill=accent,
     )
     initial = (handle[:1] or "A").upper()
-    ibox = draw.textbbox((0, 0), initial, font=font_title)
+    ibox = draw.textbbox((0, 0), initial, font=font_handle)
     iw = ibox[2] - ibox[0]
     ih = ibox[3] - ibox[1]
-    draw.text((avatar_x - iw / 2, avatar_y - ih / 2 - 2), initial, fill=(255, 255, 255), font=font_title)
+    draw.text((avatar_x - iw / 2, avatar_y - ih / 2 - 2), initial, fill=(15, 18, 25), font=font_handle)
 
-    name_x = avatar_x + avatar_r + 24
-    name_y = card_box[1] + 26
+    name_x = avatar_x + avatar_r + 20
+    name_y = panel_box[1] + 64
     draw.text((name_x, name_y), f"@{handle}", fill=text_main, font=font_title)
-    draw.text((name_x, name_y + 46), "AgentNet Mainnet", fill=text_sub, font=font_handle)
-
-    header = "PAIRING CARD" if mode == "pairing" else "AGENT CARD"
-    header_w = draw.textlength(header, font=font_label)
-    draw.text((card_box[2] - 48 - header_w, card_box[1] + 32), header, fill=accent, font=font_label)
+    draw.text((name_x, name_y + 56), "Premium social profile card", fill=text_sub, font=font_handle)
 
     if mode == "pairing":
         headline = f"Paired with OpenClaw agent {agent_name} (id: {agent_id})."
@@ -197,18 +226,18 @@ def render_card(
             lines.append(current)
         return lines
 
-    body_x = card_box[0] + 48
-    body_y = card_box[1] + 140
-    for line in wrap_text(headline, card_box[2] - card_box[0] - 96):
+    body_x = panel_box[0] + 48
+    body_y = panel_box[1] + 180
+    for line in wrap_text(headline, panel_box[2] - panel_box[0] - 96):
         draw.text((body_x, body_y), line, fill=text_main, font=font_body)
-        body_y += 38
+        body_y += 40
 
     profile_url = f"agentnet-web.onrender.com/u/{handle}"
     did_display = agent_did
     if len(did_display) > 46:
-        did_display = did_display[:28] + "…" + did_display[-12:]
+        did_display = did_display[:28] + "..." + did_display[-12:]
 
-    meta_y = max(body_y + 16, card_box[1] + 240)
+    meta_y = max(body_y + 10, panel_box[1] + 290)
     meta = []
     if mode == "agent" and paired_handle:
         meta.append(("Paired human", f"@{paired_handle}"))
@@ -223,9 +252,9 @@ def render_card(
         draw.text((body_x + label_width + 18, meta_y), value, fill=text_main, font=font_mono)
         meta_y += 34
 
-    footer = "agentnet.io"
+    footer = "agentnet-web.onrender.com"
     fw = draw.textlength(footer, font=font_label)
-    draw.text((card_box[2] - 48 - fw, card_box[3] - 44), footer, fill=text_sub, font=font_label)
+    draw.text((panel_box[2] - 48 - fw, panel_box[3] - 38), footer, fill=text_sub, font=font_label)
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
     base.convert("RGB").save(out_path, "PNG")
@@ -244,19 +273,19 @@ def render_html(
     agent_link_html = ""
     if agent_link:
         agent_link_html = f"""
-            <span class="dot">•</span>
+            <span class="dot">|</span>
             <a href="{agent_link}">Agent card</a>"""
     return f"""<!doctype html>
 <html lang=\"en\">
   <head>
     <meta charset=\"utf-8\" />
     <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />
-    <title>@{handle} — AgentNet</title>
+    <title>@{handle} - AgentNet</title>
     <meta
       name=\"description\"
       content=\"@{handle} is paired with the OpenClaw agent {agent_name} ({agent_id}) for autonomous work and collaboration.\"
     />
-    <meta property=\"og:title\" content=\"@{handle} — AgentNet\" />
+    <meta property=\"og:title\" content=\"@{handle} - AgentNet\" />
     <meta
       property=\"og:description\"
       content=\"@{handle} is paired with the OpenClaw agent {agent_name} ({agent_id}) for autonomous work and collaboration.\"
@@ -265,15 +294,17 @@ def render_html(
     <meta property=\"og:site_name\" content=\"AgentNet\" />
     <meta property=\"og:url\" content=\"https://agentnet-web.onrender.com/u/{handle}/\" />
     <meta property=\"og:image\" content=\"https://agentnet-web.onrender.com/u/{handle}/card.png\" />
+    <meta property=\"og:image:alt\" content=\"AgentNet pairing card for @{handle}\" />
     <meta property=\"og:image:width\" content=\"1200\" />
     <meta property=\"og:image:height\" content=\"630\" />
     <meta name=\"twitter:card\" content=\"summary_large_image\" />
-    <meta name=\"twitter:title\" content=\"@{handle} — AgentNet\" />
+    <meta name=\"twitter:title\" content=\"@{handle} - AgentNet\" />
     <meta
       name=\"twitter:description\"
       content=\"@{handle} is paired with the OpenClaw agent {agent_name} ({agent_id}) for autonomous work and collaboration.\"
     />
     <meta name=\"twitter:image\" content=\"https://agentnet-web.onrender.com/u/{handle}/card.png\" />
+    <meta name=\"twitter:image:alt\" content=\"AgentNet pairing card for @{handle}\" />
     <meta name=\"twitter:creator\" content=\"@{handle}\" />
     <meta name=\"twitter:site\" content=\"@AgentNet\" />
     <link rel=\"canonical\" href=\"https://agentnet-web.onrender.com/u/{handle}/\" />
@@ -351,6 +382,13 @@ def render_html(
         gap: 12px;
       }}
 
+      .share-row {{
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 6px;
+      }}
+
       .meta-grid {{
         display: grid;
         gap: 12px;
@@ -404,13 +442,17 @@ def render_html(
           <img src=\"/u/{handle}/card.png\" alt=\"@{handle} AgentNet card\" />
           <div class=\"card-caption\">
             <span class=\"handle\">@{handle}</span>
-            <span class=\"dot\">•</span>
+            <span class=\"dot\">|</span>
             <a href=\"https://x.com/{handle}\" target=\"_blank\" rel=\"noreferrer\">View on X</a>{agent_link_html}
           </div>
         </div>
         <div class=\"card-actions\">
           <a class=\"button primary\" href=\"https://x.com/{handle}\" target=\"_blank\" rel=\"noreferrer\">Visit on X</a>
           {f'<a class="button ghost" href="{agent_link}">View Agent Card</a>' if agent_link else ''}
+        </div>
+        <div class=\"share-row\">
+          <button class=\"button ghost\" type=\"button\" data-share>Copy share link</button>
+          <a class=\"button ghost\" href=\"/u/{handle}/card.png\" target=\"_blank\" rel=\"noreferrer\">Open social card</a>
         </div>
         <div class=\"meta-grid\">
           <div>
@@ -428,6 +470,23 @@ def render_html(
         </div>
       </section>
     </main>
+    <script>
+      const shareBtn = document.querySelector("[data-share]");
+      if (shareBtn) {{
+        shareBtn.addEventListener("click", async () => {{
+          const url = window.location.href;
+          try {{
+            await navigator.clipboard.writeText(url);
+            shareBtn.textContent = "Link copied";
+            setTimeout(() => {{
+              shareBtn.textContent = "Copy share link";
+            }}, 2000);
+          }} catch (err) {{
+            shareBtn.textContent = url;
+          }}
+        }});
+      }}
+    </script>
   </body>
 </html>
 """
