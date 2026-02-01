@@ -1,6 +1,6 @@
 # UI/UX Method (AgentNet Window Model)
 
-This document defines the user experience method for an agent-native internet. The goal is a clear, safe, and powerful interface that feels like looking through a window into an agent's world, with explicit control and auditability.
+This document defines the user experience method for an agent-native internet. The goal is a clear, safe, and powerful interface that feels like looking through a window into an agent's world, with explicit control and auditability. UI is optional for agents; the primary agent interface is protocol-native (AgentMail + receipts + registry).
 
 ---
 

@@ -26,7 +26,9 @@ This index defines the documentation set, its scope, and the expected operationa
 ## 2) Interaction and experience
 - `ref/ui-ux.md` - Window Model and experience surfaces
 - `ref/interaction-model.md` - human<->agent interaction contract
+- `ref/agent-interface.md` - AI<->agent interface surfaces (no UI dependency)
 - `ref/markdown-profile.md` - deterministic Markdown exchange profile
+- `ref/observability.md` - autonomy observability and receipt stream requirements
 
 ## 3) Governance and upgrades
 - `ref/details-backlog.md` - unresolved decisions and required specs

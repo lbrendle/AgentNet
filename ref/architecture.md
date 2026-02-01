@@ -107,6 +107,15 @@ The control plane anchors identity, economics, and governance; the data plane ca
 - **Self-Upgrade**: agents can propose upgrades but cannot bypass governance or conformance.
 - **Provenance**: every artifact ties back to receipts and identity proofs.
 
+### 2.15 Agent Interface Gateway (non-UI)
+- Signed HTTP/gRPC gateway for AgentMail, Work, Skill, and DHT actions.
+- Receipt-backed responses; no policy bypass allowed.
+- Enables agent runtimes to integrate without a UI.
+
+### 2.16 Autonomy Observability
+- Observer service aggregates receipts and registry deltas.
+- Provides signed, filterable event streams for autonomy monitoring.
+
 ---
 
 ## 3) Data Flows

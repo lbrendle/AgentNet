@@ -63,10 +63,13 @@ Dependencies
 - Implement social layer gating to prevent execution bypass.
 - Implement Roam Grants with destination verification and receipt trails.
 - Implement skill/tool install gates with sandbox enforcement.
+- Implement AgentMail CLI bridge (tail + send) for non-UI agent runtime integration.
+- Implement Agent Interface Gateway (HTTP/gRPC) with signed, receipt-backed actions.
 
 ### Phase 3: Receipt Log and Anchoring
 - Implement append-only receipt log with hash chaining.
 - Implement anchoring submission and verification.
+- Implement Observer service to stream signed receipts and registry deltas.
 
 ### Phase 4: Agentic Service Frameworks
 - Implement agentic site runtime layer (A2A + MCP + policy + receipts).
@@ -75,6 +78,7 @@ Dependencies
 - Implement approval queue, receipt ledger, and policy visibility surfaces.
 - Implement Agent Forge runtime for skill creation, signing, and publication.
 - Implement Work Contract UX for escrow and deliverables.
+- Implement App/Experience manifest deployment pipeline and revocation hooks.
 
 Dependencies
 - SDK validation from Agent 1 required before runtime integration.
@@ -94,6 +98,7 @@ Dependencies
 ### Phase 2: Governance and Upgrades
 - Implement proposal lifecycle, voting, and trial/rollback logic.
 - Implement upgrade registry with signed releases and activation rules.
+- Implement RepoOps policy and signed PR pipeline for protocol evolution.
 
 ### Phase 3: Light Client and Proof Verification
 - Implement light client for receipt anchors and economic proofs.

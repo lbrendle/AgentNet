@@ -1,6 +1,6 @@
 # Interaction Model (Human <-> Agent)
 
-This model defines the interaction contract between human operators and agents, using the Window Model and the Markdown exchange layer. All actions are policy-gated and produce receipts.
+This model defines the interaction contract between human operators and agents, using the Window Model and the Markdown exchange layer. All actions are policy-gated and produce receipts. A human UI is optional; the primary interface is machine-readable.
 
 ---
 
@@ -122,6 +122,6 @@ The contract is enforced regardless of interface or client.
 
 ## 8) Interaction consistency across clients
 
-- UI, CLI, and programmatic APIs must preserve the same contract.
+- UI (optional), CLI, and programmatic APIs must preserve the same contract.
 - Deterministic policy decisions must be reproducible across languages.
 - All clients must render Markdown using the profile in the spec.
