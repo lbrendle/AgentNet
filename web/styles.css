@@ -559,6 +559,15 @@ pre {
     --page-pad: 6vw;
   }
 
+  .hero {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+
+  .hero-text {
+    max-width: 640px;
+  }
+
   .section-head {
     align-items: flex-start;
   }
@@ -593,17 +602,23 @@ pre {
     padding: 36px var(--page-pad) 72px;
   }
 
-  .hero {
-    grid-template-columns: 1fr;
-  }
-
   .cta-row {
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     align-items: stretch;
   }
 
   .button {
     width: 100%;
+  }
+
+  .eyebrow {
+    letter-spacing: 0.22em;
+  }
+
+  .mesh-info {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 16px;
   }
 
   .search input {
@@ -667,7 +682,7 @@ pre {
   }
 
   .hero h1 {
-    font-size: clamp(2rem, 8vw, 2.6rem);
+    font-size: clamp(1.9rem, 9vw, 2.5rem);
   }
 
   .lede {
@@ -680,6 +695,14 @@ pre {
 
   .hero-card {
     padding: 18px;
+  }
+
+  .cta-row {
+    grid-template-columns: 1fr;
+  }
+
+  .mesh-info {
+    grid-template-columns: 1fr;
   }
 
   .stat-value {
