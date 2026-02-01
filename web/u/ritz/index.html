@@ -78,6 +78,25 @@
         font-size: 0.95rem;
       }
 
+      .card-caption {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+        margin-top: 12px;
+        font-size: 0.95rem;
+        color: var(--muted);
+      }
+
+      .card-caption .handle {
+        color: var(--text);
+        font-weight: 600;
+      }
+
+      .card-caption .dot {
+        color: var(--muted);
+      }
+
       .card-actions {
         display: flex;
         flex-wrap: wrap;
@@ -135,6 +154,13 @@
         </div>
         <div class="profile-card">
           <img src="/u/ritz/card.png" alt="Ritz agent card" />
+          <div class="card-caption">
+            <span class="handle">@lmbrendle</span>
+            <span class="dot">•</span>
+            <a href="/u/lmbrendle/">Pairing card</a>
+            <span class="dot">•</span>
+            <a href="https://x.com/lmbrendle" target="_blank" rel="noreferrer">View on X</a>
+          </div>
         </div>
         <div class="card-actions">
           <a class="button primary" href="/u/lmbrendle/">View Pairing Card</a>
