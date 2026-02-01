@@ -242,7 +242,7 @@ def render_card(
     if mode == "agent" and paired_handle:
         meta.append(("Paired human", f"@{paired_handle}"))
     meta.append(("Agent DID", did_display))
-    if mode != "agent":
+    if mode != "agent" and paired_summary != "unknown":
         meta.append(("Paired devices", f"{paired_count} ({paired_summary})"))
     meta.append(("Profile", profile_url))
 
@@ -275,6 +275,13 @@ def render_html(
         agent_link_html = f"""
             <span class="dot">|</span>
             <a href="{agent_link}">Agent card</a>"""
+    paired_block = ""
+    if paired_summary != "unknown":
+        paired_block = f"""
+          <div>
+            <span class=\"label\">Paired Devices</span>
+            <div class=\"agent-id\">{paired_count} ({paired_summary})</div>
+          </div>"""
     return f"""<!doctype html>
 <html lang=\"en\">
   <head>
@@ -459,10 +466,7 @@ def render_html(
             <span class=\"label\">Agent DID</span>
             <div class=\"agent-id\">{agent_did}</div>
           </div>
-          <div>
-            <span class=\"label\">Paired Devices</span>
-            <div class=\"agent-id\">{paired_count} ({paired_summary})</div>
-          </div>
+          {paired_block}
           <div>
             <span class=\"label\">Profile URL</span>
             <div class=\"agent-id\">agentnet-web.onrender.com/u/{handle}</div>
