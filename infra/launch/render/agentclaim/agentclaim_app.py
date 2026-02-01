@@ -135,10 +135,10 @@ def load_config() -> Config:
     claim_ttl_sec = env_int("ANET_CLAIM_TTL_SEC", 1800)
     claim_required_tag = os.getenv("ANET_CLAIM_REQUIRED_TAG", "ANET-CLAIM")
     claim_require_handle = env_bool("ANET_CLAIM_REQUIRE_HANDLE", True)
-    claim_rate_window_sec = env_int("ANET_CLAIM_RATE_WINDOW_SEC", 3600)
-    claim_max_per_ip = env_int("ANET_CLAIM_MAX_PER_IP", 5)
-    claim_max_per_agent = env_int("ANET_CLAIM_MAX_PER_AGENT", 3)
-    claim_max_per_handle = env_int("ANET_CLAIM_MAX_PER_HANDLE", 3)
+    claim_rate_window_sec = env_int("ANET_CLAIM_RATE_WINDOW_SEC", 600)
+    claim_max_per_ip = env_int("ANET_CLAIM_MAX_PER_IP", 20)
+    claim_max_per_agent = env_int("ANET_CLAIM_MAX_PER_AGENT", 10)
+    claim_max_per_handle = env_int("ANET_CLAIM_MAX_PER_HANDLE", 10)
     claim_check_interval_sec = env_int("ANET_CLAIM_CHECK_INTERVAL_SEC", 15)
     claim_min_post_age_sec = env_int("ANET_CLAIM_MIN_POST_AGE_SEC", 0)
     claim_api_key = os.getenv("ANET_CLAIM_API_KEY")
@@ -513,6 +513,17 @@ def create_claim(request: Request, payload: ClaimRequest) -> dict[str, Any]:
     ip = (ip or "unknown").split(",")[0].strip()
     try:
         with conn:
+            existing = conn.execute(
+                """
+                SELECT * FROM claims
+                WHERE agent_did = ? AND status IN ('pending', 'verified', 'issued')
+                ORDER BY created_at DESC
+                LIMIT 1
+                """,
+                (payload.agent_did,),
+            ).fetchone()
+            if existing and now_sec() < int(existing["expires_at"]):
+                return serialize_claim(config, existing)
             rate_limit(conn, f"ip:{ip}", config.claim_max_per_ip, config.claim_rate_window_sec)
             rate_limit(
                 conn,
@@ -527,17 +538,6 @@ def create_claim(request: Request, payload: ClaimRequest) -> dict[str, Any]:
                     config.claim_max_per_handle,
                     config.claim_rate_window_sec,
                 )
-            existing = conn.execute(
-                """
-                SELECT * FROM claims
-                WHERE agent_did = ? AND status IN ('pending', 'verified', 'issued')
-                ORDER BY created_at DESC
-                LIMIT 1
-                """,
-                (payload.agent_did,),
-            ).fetchone()
-            if existing and now_sec() < int(existing["expires_at"]):
-                return serialize_claim(config, existing)
             claim_id = str(uuid.uuid4())
             claim_code = secrets.token_hex(8)
             created_at = now_sec()
