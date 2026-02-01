@@ -280,6 +280,205 @@ def render_card(
     base.convert("RGB").save(out_path, "PNG")
 
 
+def render_instagram_card(
+    handle: str,
+    agent_name: str,
+    agent_id: str,
+    agent_did: str,
+    paired_count: int,
+    paired_summary: str,
+    out_path: Path,
+    *,
+    mode: str = "pairing",
+    paired_handle: Optional[str] = None,
+) -> None:
+    W, H = 1080, 1350
+    bg_top = (9, 12, 18)
+    bg_bottom = (14, 20, 32)
+
+    base = Image.new("RGB", (W, H), bg_top)
+    draw = ImageDraw.Draw(base)
+    for y in range(H):
+        t = y / (H - 1)
+        r = int(bg_top[0] + (bg_bottom[0] - bg_top[0]) * t)
+        g = int(bg_top[1] + (bg_bottom[1] - bg_top[1]) * t)
+        b = int(bg_top[2] + (bg_bottom[2] - bg_top[2]) * t)
+        draw.line([(0, y), (W, y)], fill=(r, g, b))
+
+    overlay = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    odraw = ImageDraw.Draw(overlay)
+    for x in range(-240, W, 160):
+        odraw.line([(x, 0), (x + 320, H)], fill=(255, 255, 255, 12))
+    base = Image.alpha_composite(base.convert("RGBA"), overlay)
+
+    draw = ImageDraw.Draw(base)
+    card_box = (70, 110, W - 70, H - 110)
+    try:
+        draw.rounded_rectangle(
+            card_box,
+            radius=34,
+            fill=(14, 20, 30, 240),
+            outline=(60, 75, 92, 160),
+            width=2,
+        )
+    except Exception:
+        draw.rectangle(card_box, fill=(14, 20, 30, 240), outline=(60, 75, 92, 160), width=2)
+
+    font_display = load_font(
+        [
+            "/System/Library/Fonts/Supplemental/Arial Bold.ttf",
+            "/System/Library/Fonts/HelveticaNeue.ttc",
+            "/System/Library/Fonts/Helvetica.ttc",
+        ],
+        64,
+    )
+    font_brand = load_font(
+        [
+            "/System/Library/Fonts/Supplemental/Arial Bold.ttf",
+            "/System/Library/Fonts/HelveticaNeue.ttc",
+            "/System/Library/Fonts/Helvetica.ttc",
+        ],
+        30,
+    )
+    font_handle = load_font(
+        [
+            "/System/Library/Fonts/Supplemental/Arial.ttf",
+            "/System/Library/Fonts/HelveticaNeue.ttc",
+            "/System/Library/Fonts/Helvetica.ttc",
+        ],
+        30,
+    )
+    font_body = load_font(
+        [
+            "/System/Library/Fonts/Supplemental/Arial.ttf",
+            "/System/Library/Fonts/HelveticaNeue.ttc",
+            "/System/Library/Fonts/Helvetica.ttc",
+        ],
+        30,
+    )
+    font_label = load_font(
+        [
+            "/System/Library/Fonts/Supplemental/Arial.ttf",
+            "/System/Library/Fonts/HelveticaNeue.ttc",
+            "/System/Library/Fonts/Helvetica.ttc",
+        ],
+        22,
+    )
+    font_badge = load_font(
+        [
+            "/System/Library/Fonts/Supplemental/Arial Bold.ttf",
+            "/System/Library/Fonts/HelveticaNeue.ttc",
+            "/System/Library/Fonts/Helvetica.ttc",
+        ],
+        22,
+    )
+    font_mono = load_font(
+        [
+            "/System/Library/Fonts/SFNSMono.ttf",
+            "/System/Library/Fonts/Supplemental/Andale Mono.ttf",
+        ],
+        22,
+    )
+
+    accent = (124, 246, 226)
+    accent_hot = (255, 106, 61)
+    text_main = (245, 246, 248)
+    text_sub = (171, 178, 190)
+    text_muted = (126, 136, 150)
+
+    badge = "PAIRING" if mode == "pairing" else "AGENT"
+    badge_w = draw.textlength(badge, font=font_badge)
+    badge_box = (
+        card_box[2] - badge_w - 86,
+        card_box[1] + 28,
+        card_box[2] - 36,
+        card_box[1] + 58,
+    )
+    try:
+        draw.rounded_rectangle(badge_box, radius=14, fill=(255, 106, 61, 240))
+    except Exception:
+        draw.rectangle(badge_box, fill=(255, 106, 61, 240))
+    draw.text((badge_box[0] + 16, badge_box[1] + 6), badge, fill=(14, 18, 26), font=font_badge)
+
+    brand_x = card_box[0] + 40
+    brand_y = card_box[1] + 24
+    draw.text((brand_x, brand_y), "AgentNet", fill=text_main, font=font_brand)
+    draw.text((brand_x, brand_y + 30), "MAINNET", fill=accent, font=font_label)
+
+    avatar_r = 48
+    avatar_x = card_box[0] + 70
+    avatar_y = card_box[1] + 160
+    draw.ellipse(
+        (avatar_x - avatar_r, avatar_y - avatar_r, avatar_x + avatar_r, avatar_y + avatar_r),
+        fill=accent_hot,
+    )
+    initial = (handle[:1] or "A").upper()
+    ibox = draw.textbbox((0, 0), initial, font=font_handle)
+    iw = ibox[2] - ibox[0]
+    ih = ibox[3] - ibox[1]
+    draw.text((avatar_x - iw / 2, avatar_y - ih / 2 - 2), initial, fill=(18, 20, 28), font=font_handle)
+
+    name_x = avatar_x + avatar_r + 22
+    name_y = card_box[1] + 116
+    display_name = agent_name if mode == "agent" else handle
+    draw.text((name_x, name_y), display_name, fill=text_main, font=font_display)
+    draw.text((name_x, name_y + 62), f"@{handle}", fill=text_muted, font=font_handle)
+    draw.text((name_x, name_y + 100), "AgentNet identity card", fill=text_sub, font=font_label)
+
+    if mode == "pairing":
+        headline = f"Paired with OpenClaw agent {agent_name} (id: {agent_id})."
+    else:
+        headline = f"OpenClaw agent {agent_name} (id: {agent_id})."
+
+    def wrap_text(text: str, max_width: int) -> List[str]:
+        words = text.split()
+        lines: List[str] = []
+        current = ""
+        for word in words:
+            candidate = f"{current} {word}".strip()
+            if not current or draw.textlength(candidate, font=font_body) <= max_width:
+                current = candidate
+            else:
+                lines.append(current)
+                current = word
+        if current:
+            lines.append(current)
+        return lines
+
+    body_x = card_box[0] + 56
+    body_y = card_box[1] + 310
+    for line in wrap_text(headline, card_box[2] - card_box[0] - 112):
+        draw.text((body_x, body_y), line, fill=text_main, font=font_body)
+        body_y += 42
+
+    profile_url = f"agentnet-web.onrender.com/u/{handle}"
+    did_display = agent_did
+    if len(did_display) > 46:
+        did_display = did_display[:28] + "..." + did_display[-12:]
+
+    meta_y = max(body_y + 12, card_box[1] + 520)
+    meta = []
+    if mode == "agent" and paired_handle:
+        meta.append(("Paired human", f"@{paired_handle}"))
+    meta.append(("Agent DID", did_display))
+    if mode != "agent" and paired_summary != "unknown":
+        meta.append(("Paired devices", f"{paired_count} ({paired_summary})"))
+    meta.append(("Profile", profile_url))
+
+    label_width = max(draw.textlength(label, font=font_label) for label, _ in meta)
+    for label, value in meta:
+        draw.text((body_x, meta_y), label, fill=text_sub, font=font_label)
+        draw.text((body_x + label_width + 18, meta_y), value, fill=text_main, font=font_mono)
+        meta_y += 36
+
+    footer = "agentnet-web.onrender.com"
+    fw = draw.textlength(footer, font=font_label)
+    draw.text((card_box[2] - 44 - fw, card_box[3] - 42), footer, fill=text_sub, font=font_label)
+
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    base.convert("RGB").save(out_path, "PNG")
+
+
 def render_html(
     handle: str,
     agent_name: str,
@@ -348,6 +547,10 @@ def render_html(
     <meta property=\"og:image:alt\" content=\"AgentNet {card_label_lower} for @{handle}\" />
     <meta property=\"og:image:width\" content=\"1200\" />
     <meta property=\"og:image:height\" content=\"630\" />
+    <meta property=\"og:image\" content=\"https://agentnet-web.onrender.com/u/{handle}/card-ig.png\" />
+    <meta property=\"og:image:alt\" content=\"AgentNet {card_label_lower} for @{handle} (Instagram)\" />
+    <meta property=\"og:image:width\" content=\"1080\" />
+    <meta property=\"og:image:height\" content=\"1350\" />
     <meta name=\"twitter:card\" content=\"summary_large_image\" />
     <meta name=\"twitter:title\" content=\"@{handle} - AgentNet\" />
     <meta
@@ -529,7 +732,8 @@ def render_html(
           >
             Share profile
           </button>
-          <a class=\"button ghost\" href=\"/u/{handle}/card.png\" target=\"_blank\" rel=\"noreferrer\">Open social card</a>
+          <a class=\"button ghost\" href=\"/u/{handle}/card.png\" target=\"_blank\" rel=\"noreferrer\">Open X card</a>
+          <a class=\"button ghost\" href=\"/u/{handle}/card-ig.png\" target=\"_blank\" rel=\"noreferrer\">Open Instagram card</a>
         </div>
         <div class=\"meta-grid\">
           <div>
@@ -659,6 +863,7 @@ def main() -> None:
 
     handle_dir = repo_root / "web" / "u" / args.handle
     card_path = handle_dir / "card.png"
+    ig_card_path = handle_dir / "card-ig.png"
     html_path = handle_dir / "index.html"
 
     render_card(
@@ -669,6 +874,17 @@ def main() -> None:
         paired_count,
         paired_summary,
         card_path,
+        mode=args.mode,
+        paired_handle=args.paired_handle,
+    )
+    render_instagram_card(
+        args.handle,
+        agent_name,
+        agent_id,
+        agent_did,
+        paired_count,
+        paired_summary,
+        ig_card_path,
         mode=args.mode,
         paired_handle=args.paired_handle,
     )
@@ -687,9 +903,13 @@ def main() -> None:
         + "\n"
     )
 
-    changed = git_has_changes(repo_root, [card_path, html_path])
+    changed = git_has_changes(repo_root, [card_path, ig_card_path, html_path])
     if changed and args.publish:
-        git_commit_push(repo_root, f"Sync pairing card for @{args.handle}", [card_path, html_path])
+        git_commit_push(
+            repo_root,
+            f"Sync pairing card for @{args.handle}",
+            [card_path, ig_card_path, html_path],
+        )
 
     if args.deploy:
         deploy_render_service(args.render_key, "agentnet-web")
