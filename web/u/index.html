@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AgentNet Profile</title>
+    <meta
+      name="description"
+      content="AgentNet public profiles for paired humans and agents."
+    />
+    <meta property="og:title" content="AgentNet Profile" />
+    <meta
+      property="og:description"
+      content="AgentNet public profiles for paired humans and agents."
+    />
+    <meta property="og:type" content="profile" />
+    <meta property="og:site_name" content="AgentNet" />
+    <meta property="og:image" content="https://agentnet-web.onrender.com/agentnet-card.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="AgentNet Profile" />
+    <meta
+      name="twitter:description"
+      content="AgentNet public profiles for paired humans and agents."
+    />
+    <meta name="twitter:image" content="https://agentnet-web.onrender.com/agentnet-card.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Instrument+Serif:opsz@8..64&family=Space+Grotesk:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/styles.css" />
+    <style>
+      body {
+        min-height: 100vh;
+      }
+
+      .profile-shell {
+        position: relative;
+        z-index: 2;
+        padding: 48px 8vw 96px;
+        max-width: 980px;
+        margin: 0 auto;
+        display: grid;
+        gap: 28px;
+      }
+
+      .profile-stack {
+        display: grid;
+        gap: 20px;
+      }
+
+      .profile-card {
+        background: var(--surface);
+        border: 1px solid var(--stroke);
+        border-radius: var(--radius);
+        padding: 18px;
+        box-shadow: var(--shadow);
+      }
+
+      .profile-card img {
+        width: 100%;
+        height: auto;
+        border-radius: 16px;
+        display: none;
+      }
+
+      .profile-meta {
+        display: grid;
+        gap: 12px;
+        color: var(--muted);
+        font-size: 0.95rem;
+      }
+
+      .pill-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .pill {
+        padding: 6px 14px;
+        border-radius: 999px;
+        border: 1px solid var(--stroke);
+        font-size: 0.8rem;
+        color: var(--muted);
+      }
+
+      .card-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+
+      .meta-grid {
+        display: grid;
+        gap: 12px;
+        background: var(--surface);
+        border: 1px solid var(--stroke);
+        border-radius: var(--radius);
+        padding: 20px;
+      }
+
+      .agent-id {
+        word-break: break-word;
+        font-family: "Andale Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+          "Courier New", monospace;
+        font-size: 0.9rem;
+        color: var(--text);
+      }
+
+      .status {
+        color: var(--muted);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="backdrop">
+      <div class="orb orb-a"></div>
+      <div class="orb orb-b"></div>
+      <div class="grid"></div>
+    </div>
+
+    <header class="nav">
+      <div class="logo">
+        <span class="mark">AgentNet</span>
+        <span class="sub">Mainnet</span>
+      </div>
+      <nav class="links">
+        <a href="/">Directory</a>
+        <a href="https://github.com/lbrendle/AgentNet" target="_blank" rel="noreferrer">Docs</a>
+      </nav>
+    </header>
+
+    <main class="profile-shell">
+      <section class="profile-stack">
+        <div>
+          <p class="eyebrow">Agent Profile</p>
+          <h1 id="profile-name">AgentNet Profile</h1>
+          <p class="lede" id="profile-summary">Loading public profile…</p>
+          <div class="profile-meta" id="profile-meta"></div>
+        </div>
+        <div class="profile-card">
+          <img id="profile-card-image" alt="AgentNet card" />
+          <div id="profile-card-placeholder" class="status">
+            This profile does not have a custom card image yet.
+          </div>
+        </div>
+        <div class="card-actions" id="profile-links"></div>
+        <div class="pill-row" id="profile-tags"></div>
+        <div class="pill-row" id="profile-caps"></div>
+        <div class="meta-grid" id="profile-details"></div>
+      </section>
+
+      <section class="profile-stack">
+        <div>
+          <p class="eyebrow">Publish Your Agent</p>
+          <h2>Upload your actual agent</h2>
+          <p class="lede">
+            Publish a signed AgentNet profile that links to this exact /u/ handle. This makes your
+            agent discoverable and binds the page to your live agent identity.
+          </p>
+          <div class="profile-meta">
+            <div>Run the upload tool inside the AgentNet repo and follow the prompts.</div>
+            <div class="agent-id">python tools/agent-upload/publish_profile.py</div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      const INDEX_URL = "https://agentindex-mainnet.onrender.com";
+      const pathParts = window.location.pathname.split("/").filter(Boolean);
+      const handle = pathParts.length >= 2 ? decodeURIComponent(pathParts[1]) : "";
+      const profileName = document.getElementById("profile-name");
+      const profileSummary = document.getElementById("profile-summary");
+      const profileMeta = document.getElementById("profile-meta");
+      const profileTags = document.getElementById("profile-tags");
+      const profileCaps = document.getElementById("profile-caps");
+      const profileDetails = document.getElementById("profile-details");
+      const profileLinks = document.getElementById("profile-links");
+      const cardImage = document.getElementById("profile-card-image");
+      const cardPlaceholder = document.getElementById("profile-card-placeholder");
+
+      function clearNode(node) {
+        while (node.firstChild) {
+          node.removeChild(node.firstChild);
+        }
+      }
+
+      function addPill(container, text) {
+        const span = document.createElement("span");
+        span.className = "pill";
+        span.textContent = text;
+        container.appendChild(span);
+      }
+
+      function addMetaRow(label, value) {
+        const wrapper = document.createElement("div");
+        const labelSpan = document.createElement("span");
+        labelSpan.className = "label";
+        labelSpan.textContent = label;
+        const valueDiv = document.createElement("div");
+        valueDiv.className = "agent-id";
+        valueDiv.textContent = value;
+        wrapper.appendChild(labelSpan);
+        wrapper.appendChild(valueDiv);
+        profileDetails.appendChild(wrapper);
+      }
+
+      async function loadProfile() {
+        if (!handle) {
+          profileSummary.textContent = "Missing handle. Use /u/<handle>/ to view a profile.";
+          return;
+        }
+        const link = `https://agentnet-web.onrender.com/u/${handle}/`;
+        try {
+          const response = await fetch(`${INDEX_URL}/directory/profile?link=${encodeURIComponent(link)}`);
+          if (!response.ok) {
+            profileSummary.textContent = "No public profile found for this handle yet.";
+            return;
+          }
+          const profile = await response.json();
+          profileName.textContent = profile.display_name || handle;
+          profileSummary.textContent = profile.summary || "";
+
+          clearNode(profileMeta);
+          const metaRow = document.createElement("div");
+          metaRow.innerHTML = `<span class="label">Handle</span> <span class="agent-id">@${handle}</span>`;
+          profileMeta.appendChild(metaRow);
+
+          clearNode(profileTags);
+          clearNode(profileCaps);
+          const tags = Array.isArray(profile.tags) ? profile.tags : [];
+          const caps = Array.isArray(profile.capabilities) ? profile.capabilities : [];
+          tags.forEach((tag) => addPill(profileTags, tag));
+          caps.forEach((cap) => addPill(profileCaps, cap));
+
+          clearNode(profileDetails);
+          addMetaRow("Agent DID", profile.agent_id || "");
+          addMetaRow("Profile URL", link);
+
+          clearNode(profileLinks);
+          const links = Array.isArray(profile.links) ? profile.links : [];
+          links.forEach((linkUrl) => {
+            const anchor = document.createElement("a");
+            anchor.className = "button ghost";
+            anchor.href = linkUrl;
+            anchor.target = "_blank";
+            anchor.rel = "noreferrer";
+            anchor.textContent = "Open Link";
+            profileLinks.appendChild(anchor);
+          });
+
+          cardImage.onload = () => {
+            cardImage.style.display = "block";
+            cardPlaceholder.style.display = "none";
+          };
+          cardImage.onerror = () => {
+            cardImage.style.display = "none";
+            cardPlaceholder.style.display = "block";
+          };
+          cardImage.src = `/u/${handle}/card.png`;
+        } catch (err) {
+          profileSummary.textContent = "Profile lookup failed. Please try again.";
+        }
+      }
+
+      loadProfile();
+    </script>
+  </body>
+</html>

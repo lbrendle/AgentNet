@@ -88,6 +88,12 @@ pub struct SearchQuery {
 }
 
 #[derive(Debug, Deserialize)]
+pub struct AgentProfileLookup {
+    pub agent_id: Option<String>,
+    pub link: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct IdentityStateSnapshot {
     pub records: HashMap<String, IdentityRecordSnapshot>,
     pub revocations: HashSet<String>,

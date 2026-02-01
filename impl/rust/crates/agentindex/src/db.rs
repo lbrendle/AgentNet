@@ -75,6 +75,13 @@ impl IndexDb {
             );
             CREATE INDEX IF NOT EXISTS idx_agent_profile_caps_cap ON agent_profile_caps(cap);
 
+            CREATE TABLE IF NOT EXISTS agent_profile_links (
+                agent_id TEXT NOT NULL,
+                link TEXT NOT NULL,
+                UNIQUE(agent_id, link)
+            );
+            CREATE INDEX IF NOT EXISTS idx_agent_profile_links_link ON agent_profile_links(link);
+
             CREATE VIRTUAL TABLE IF NOT EXISTS agent_profiles_fts
             USING fts5(agent_id, display_name, summary, tags, capabilities);
 
@@ -529,12 +536,27 @@ impl IndexDb {
             "DELETE FROM agent_profile_caps WHERE agent_id = ?",
             params![payload.agent_id],
         )?;
+        self.conn.execute(
+            "DELETE FROM agent_profile_links WHERE agent_id = ?",
+            params![payload.agent_id],
+        )?;
         {
             let mut stmt = self.conn.prepare(
                 "INSERT OR IGNORE INTO agent_profile_caps (agent_id, cap) VALUES (?, ?)",
             )?;
             for cap in &payload.capabilities {
                 stmt.execute(params![payload.agent_id, cap])?;
+            }
+        }
+        if let Some(links) = payload.links.as_ref() {
+            let mut stmt = self
+                .conn
+                .prepare("INSERT OR IGNORE INTO agent_profile_links (agent_id, link) VALUES (?, ?)")?;
+            for link in links {
+                if link.is_empty() {
+                    continue;
+                }
+                stmt.execute(params![payload.agent_id, link])?;
             }
         }
         self.conn.execute(
@@ -750,8 +772,8 @@ impl IndexDb {
         let mut conditions = Vec::new();
         let mut params_vec: Vec<rusqlite::types::Value> = Vec::new();
         if let Some(q) = query.q.as_ref().filter(|q| !q.trim().is_empty()) {
-            sql.push_str(" JOIN agents_fts f ON a.agent_id = f.agent_id");
-            conditions.push("f MATCH ?");
+            sql.push_str(" JOIN agents_fts ON a.agent_id = agents_fts.agent_id");
+            conditions.push("agents_fts MATCH ?");
             params_vec.push(q.to_string().into());
         }
         if let Some(cap) = query.capability.as_ref().filter(|c| !c.trim().is_empty()) {
@@ -794,8 +816,8 @@ impl IndexDb {
         let mut conditions = Vec::new();
         let mut params_vec: Vec<rusqlite::types::Value> = Vec::new();
         if let Some(q) = query.q.as_ref().filter(|q| !q.trim().is_empty()) {
-            sql.push_str(" JOIN agent_profiles_fts f ON p.agent_id = f.agent_id");
-            conditions.push("f MATCH ?");
+            sql.push_str(" JOIN agent_profiles_fts ON p.agent_id = agent_profiles_fts.agent_id");
+            conditions.push("agent_profiles_fts MATCH ?");
             params_vec.push(q.to_string().into());
         }
         if let Some(cap) = query.capability.as_ref().filter(|c| !c.trim().is_empty()) {
@@ -835,6 +857,75 @@ impl IndexDb {
         collect_rows(rows)
     }
 
+    pub fn agent_profile_by_id(&self, agent_id: &str) -> Result<Option<Value>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT p.agent_id, p.display_name, p.summary, p.tags_json, p.capabilities_json,
+                    p.links_json, p.visibility, p.expires
+             FROM agent_profiles p
+             WHERE p.agent_id = ? AND p.visibility = 1 AND p.expires > ?
+             ORDER BY p.updated_at DESC
+             LIMIT 1",
+        )?;
+        let row = stmt
+            .query_row(params![agent_id, now_ts()], |row| {
+                let agent_id: String = row.get(0)?;
+                let display_name: String = row.get(1)?;
+                let summary: String = row.get(2)?;
+                let tags_json: String = row.get(3)?;
+                let caps_json: String = row.get(4)?;
+                let links_json: Option<String> = row.get(5)?;
+                let visibility: u64 = row.get(6)?;
+                let expires: u64 = row.get(7)?;
+                Ok(json!({
+                    "agent_id": agent_id,
+                    "display_name": display_name,
+                    "summary": summary,
+                    "tags": parse_json_value(tags_json),
+                    "capabilities": parse_json_value(caps_json),
+                    "links": parse_optional_json(links_json),
+                    "visibility": visibility,
+                    "expires": expires,
+                }))
+            })
+            .optional()?;
+        Ok(row)
+    }
+
+    pub fn agent_profile_by_link(&self, link: &str) -> Result<Option<Value>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT p.agent_id, p.display_name, p.summary, p.tags_json, p.capabilities_json,
+                    p.links_json, p.visibility, p.expires
+             FROM agent_profiles p
+             JOIN agent_profile_links l ON p.agent_id = l.agent_id
+             WHERE l.link = ? AND p.visibility = 1 AND p.expires > ?
+             ORDER BY p.updated_at DESC
+             LIMIT 1",
+        )?;
+        let row = stmt
+            .query_row(params![link, now_ts()], |row| {
+                let agent_id: String = row.get(0)?;
+                let display_name: String = row.get(1)?;
+                let summary: String = row.get(2)?;
+                let tags_json: String = row.get(3)?;
+                let caps_json: String = row.get(4)?;
+                let links_json: Option<String> = row.get(5)?;
+                let visibility: u64 = row.get(6)?;
+                let expires: u64 = row.get(7)?;
+                Ok(json!({
+                    "agent_id": agent_id,
+                    "display_name": display_name,
+                    "summary": summary,
+                    "tags": parse_json_value(tags_json),
+                    "capabilities": parse_json_value(caps_json),
+                    "links": parse_optional_json(links_json),
+                    "visibility": visibility,
+                    "expires": expires,
+                }))
+            })
+            .optional()?;
+        Ok(row)
+    }
+
     pub fn search_skills(&self, query: &SearchQuery) -> Result<Vec<Value>> {
         let (limit, offset) = limit_offset(query);
         let mut sql = String::from(
@@ -848,8 +939,8 @@ impl IndexDb {
         let mut conditions = Vec::new();
         let mut params_vec: Vec<rusqlite::types::Value> = Vec::new();
         if let Some(q) = query.q.as_ref().filter(|q| !q.trim().is_empty()) {
-            sql.push_str(" JOIN skills_fts f ON s.skill_id = f.skill_id");
-            conditions.push("f MATCH ?");
+            sql.push_str(" JOIN skills_fts ON s.skill_id = skills_fts.skill_id");
+            conditions.push("skills_fts MATCH ?");
             params_vec.push(q.to_string().into());
         }
         if let Some(cap) = query.capability.as_ref().filter(|c| !c.trim().is_empty()) {
@@ -934,8 +1025,8 @@ impl IndexDb {
         let mut conditions = Vec::new();
         let mut params_vec: Vec<rusqlite::types::Value> = Vec::new();
         if let Some(q) = query.q.as_ref().filter(|q| !q.trim().is_empty()) {
-            sql.push_str(" JOIN services_fts f ON s.service_key = f.service_key");
-            conditions.push("f MATCH ?");
+            sql.push_str(" JOIN services_fts ON s.service_key = services_fts.service_key");
+            conditions.push("services_fts MATCH ?");
             params_vec.push(q.to_string().into());
         }
         if let Some(service_type) = query.service_type {
@@ -996,8 +1087,8 @@ impl IndexDb {
         let mut conditions = Vec::new();
         let mut params_vec: Vec<rusqlite::types::Value> = Vec::new();
         if let Some(q) = query.q.as_ref().filter(|q| !q.trim().is_empty()) {
-            sql.push_str(" JOIN work_offers_fts f ON w.offer_id = f.offer_id");
-            conditions.push("f MATCH ?");
+            sql.push_str(" JOIN work_offers_fts ON w.offer_id = work_offers_fts.offer_id");
+            conditions.push("work_offers_fts MATCH ?");
             params_vec.push(q.to_string().into());
         }
         if let Some(currency) = query.currency.as_ref().filter(|c| !c.trim().is_empty()) {
@@ -1078,8 +1169,8 @@ impl IndexDb {
         let mut conditions = Vec::new();
         let mut params_vec: Vec<rusqlite::types::Value> = Vec::new();
         if let Some(q) = query.q.as_ref().filter(|q| !q.trim().is_empty()) {
-            sql.push_str(" JOIN work_agreements_fts f ON w.agreement_id = f.agreement_id");
-            conditions.push("f MATCH ?");
+            sql.push_str(" JOIN work_agreements_fts ON w.agreement_id = work_agreements_fts.agreement_id");
+            conditions.push("work_agreements_fts MATCH ?");
             params_vec.push(q.to_string().into());
         }
         if let Some(currency) = query.currency.as_ref().filter(|c| !c.trim().is_empty()) {

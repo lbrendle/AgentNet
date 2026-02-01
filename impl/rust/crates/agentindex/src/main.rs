@@ -11,9 +11,10 @@ use crate::ingest::{
     ingest_work_agreement, ingest_work_offer, ingest_work_registry_state,
 };
 use crate::models::{
-    AgentProfileIngest, AgentRecordIngest, CommunityRecordIngest, IdentityStateIngest,
-    MeshInfoIngest, ReceiptIngest, SearchQuery, ServiceRecordIngest, SkillManifestIngest,
-    SkillRegistryStateIngest, WorkAgreementIngest, WorkOfferIngest, WorkRegistryStateIngest,
+    AgentProfileIngest, AgentProfileLookup, AgentRecordIngest, CommunityRecordIngest,
+    IdentityStateIngest, MeshInfoIngest, ReceiptIngest, SearchQuery, ServiceRecordIngest,
+    SkillManifestIngest, SkillRegistryStateIngest, WorkAgreementIngest, WorkOfferIngest,
+    WorkRegistryStateIngest,
 };
 use crate::state::IndexState;
 use anyhow::Result;
@@ -104,6 +105,7 @@ async fn main() -> Result<()> {
         .route("/ingest/mesh_info", post(ingest_mesh_info_handler))
         .route("/mesh/info", get(mesh_info_handler))
         .route("/directory/agents", get(directory_agents))
+        .route("/directory/profile", get(directory_profile))
         .route("/search/agents", get(search_agents))
         .route("/search/skills", get(search_skills))
         .route("/search/work_offers", get(search_work_offers))
@@ -262,6 +264,31 @@ async fn directory_agents(
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     let result = state.search_agent_profiles(query).await.map_err(err_to_response)?;
     Ok(Json(result))
+}
+
+async fn directory_profile(
+    State(state): State<Arc<IndexState>>,
+    Query(query): Query<AgentProfileLookup>,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let profile = if let Some(agent_id) = query.agent_id.as_ref().filter(|s| !s.trim().is_empty())
+    {
+        state
+            .agent_profile_by_id(agent_id)
+            .await
+            .map_err(err_to_response)?
+    } else if let Some(link) = query.link.as_ref().filter(|s| !s.trim().is_empty()) {
+        state
+            .agent_profile_by_link(link)
+            .await
+            .map_err(err_to_response)?
+    } else {
+        return Err((StatusCode::BAD_REQUEST, "agent_id or link required".to_string()));
+    };
+
+    match profile {
+        Some(result) => Ok(Json(result)),
+        None => Err((StatusCode::NOT_FOUND, "profile not found".to_string())),
+    }
 }
 
 async fn search_agents(

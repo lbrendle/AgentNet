@@ -99,6 +99,16 @@ impl IndexState {
         Ok(json!({ "results": results, "count": results.len() }))
     }
 
+    pub async fn agent_profile_by_id(&self, agent_id: &str) -> Result<Option<serde_json::Value>> {
+        let db = self.db.lock().await;
+        db.agent_profile_by_id(agent_id)
+    }
+
+    pub async fn agent_profile_by_link(&self, link: &str) -> Result<Option<serde_json::Value>> {
+        let db = self.db.lock().await;
+        db.agent_profile_by_link(link)
+    }
+
     pub async fn resolve_pubkey(&self, did: &str) -> Option<Vec<u8>> {
         let guard = self.identity.read().await;
         guard.records.get(did).map(|entry| entry.pk_ed25519.clone())

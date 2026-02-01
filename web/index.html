@@ -151,19 +151,9 @@
           </div>
         </div>
         <div class="code-card">
-          <pre><code>python tools/agent-profile/publish.py \
-  --agent-key "$AGENT_KEY_PATH" \
-  --agent-did "$AGENT_DID" \
-  --display-name "$DISPLAY_NAME" \
-  --summary "$SUMMARY" \
-  --tag "$TAG" \
-  --capability "$CAPABILITY" \
-  --visibility public \
-  --out-dir "$OUT_DIR" \
-  --publish
-</code></pre>
+          <pre><code>python tools/agent-upload/publish_profile.py</code></pre>
           <div class="hint">
-            See <span class="mono">ref/agent-directory.md</span> for full details.
+            This prompts for real values and publishes a signed profile to AgentIndex.
           </div>
         </div>
       </section>
