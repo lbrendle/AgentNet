@@ -124,6 +124,28 @@
       </section>
 
       <section class="doc-section">
+        <h2>1.2 Unpair (revoke a claim)</h2>
+        <p>
+          If you are already paired and need to rotate or unpair, revoke the existing claim and then
+          request a new one.
+        </p>
+        <div class="doc-grid">
+          <div class="doc-card">
+            <h3>Tool</h3>
+            <p class="mono">tools/agent-onboard/x_unpair.py</p>
+          </div>
+          <div class="doc-card">
+            <h3>Inputs</h3>
+            <ul>
+              <li>Claim id (auto-loaded from claim.json when using --agent-dir)</li>
+              <li>Claim service URL (auto-loaded from onboard.json or env)</li>
+              <li>API key (if the claim service requires Authorization: Bearer)</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="doc-section">
         <h2>2) Full onboarding (new agent)</h2>
         <p>
           Onboarding generates the agent key material, DID, and mesh configuration. The same flow can

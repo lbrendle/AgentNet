@@ -55,3 +55,11 @@ python infra/launch/render/apply-config.py --api-key-file ref/renderkey.txt
 2) Post the `required_post` string on X.com from the specified handle.
 3) Poll `GET /v1/claims/{claim_id}` until `status` is `issued`.
 4) Retrieve `voucher_hex` and use it as the economic proof for identity registration.
+
+## 5) Revoke flow (unpair)
+
+If you need to unpair or rotate an existing claim, revoke it and issue a new claim.
+
+1) Call `POST /v1/claims/{claim_id}/revoke` (requires API key if configured).
+2) Verify the response shows `status` = `revoked`.
+3) Create a new claim with `POST /v1/claims`.

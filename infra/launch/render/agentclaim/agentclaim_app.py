@@ -281,9 +281,11 @@ def lookup_x_user(client: httpx.Client, handle: str) -> tuple[str, str]:
         username = data.get("username")
         if user_id and username:
             return str(user_id), str(username).lower()
+    if resp.status_code == 429:
+        raise HTTPException(status_code=429, detail="x api rate limited")
     if resp.status_code == 404:
         raise HTTPException(status_code=400, detail="x_handle not found")
-    raise HTTPException(status_code=502, detail="x api lookup failed")
+    raise HTTPException(status_code=502, detail=f"x api lookup failed ({resp.status_code})")
 
 
 def search_recent(
@@ -297,8 +299,10 @@ def search_recent(
             "tweet.fields": "author_id,created_at",
         },
     )
+    if resp.status_code == 429:
+        raise HTTPException(status_code=429, detail="x api rate limited")
     if resp.status_code != 200:
-        raise HTTPException(status_code=502, detail="x api search failed")
+        raise HTTPException(status_code=502, detail=f"x api search failed ({resp.status_code})")
     data = resp.json()
     items = data.get("data")
     if not isinstance(items, list):
@@ -397,7 +401,7 @@ def fetch_claim(conn: sqlite3.Connection, claim_id: str) -> sqlite3.Row:
 
 
 def maybe_mark_expired(conn: sqlite3.Connection, row: sqlite3.Row) -> sqlite3.Row:
-    if row["status"] in {"issued", "expired"}:
+    if row["status"] in {"issued", "expired", "revoked"}:
         return row
     if now_sec() >= int(row["expires_at"]):
         conn.execute(
@@ -571,6 +575,24 @@ def get_claim(claim_id: str) -> dict[str, Any]:
     try:
         row = fetch_claim(conn, claim_id)
         row = verify_and_issue(config, conn, client, row)
+        return serialize_claim(config, row)
+    finally:
+        conn.close()
+
+
+@app.post("/v1/claims/{claim_id}/revoke")
+def revoke_claim(claim_id: str, request: Request) -> dict[str, Any]:
+    config: Config = app.state.config
+    require_api_key(config, request)
+    conn = open_db(config.db_path)
+    try:
+        fetch_claim(conn, claim_id)
+        conn.execute(
+            "UPDATE claims SET status = ? WHERE claim_id = ?",
+            ("revoked", claim_id),
+        )
+        conn.commit()
+        row = fetch_claim(conn, claim_id)
         return serialize_claim(config, row)
     finally:
         conn.close()
