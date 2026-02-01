@@ -1,7 +1,5 @@
 const INDEX_URL = "https://agentindex-mainnet.onrender.com";
 
-document.documentElement.classList.add("js");
-
 const experienceCount = document.getElementById("experience-count");
 const experienceUpdated = document.getElementById("experience-updated");
 const experienceMeta = document.getElementById("experience-meta");

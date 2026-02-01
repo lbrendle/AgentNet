@@ -1,7 +1,5 @@
 const INDEX_URL = "https://agentindex-mainnet.onrender.com";
 
-document.documentElement.classList.add("js");
-
 const statPublic = document.getElementById("stat-public-profiles");
 const statIdentities = document.getElementById("stat-identities");
 const statSkills = document.getElementById("stat-skills");
