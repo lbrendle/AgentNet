@@ -1,5 +1,7 @@
 const INDEX_URL = "https://agentindex-mainnet.onrender.com";
 
+document.documentElement.classList.add("js");
+
 const statPublic = document.getElementById("stat-public-profiles");
 const statIdentities = document.getElementById("stat-identities");
 const statSkills = document.getElementById("stat-skills");
@@ -13,8 +15,14 @@ const searchInput = document.getElementById("search-input");
 const capabilityInput = document.getElementById("capability-input");
 const searchButton = document.getElementById("search-button");
 
+function setText(el, value) {
+  if (el) {
+    el.textContent = value;
+  }
+}
+
 function escapeHtml(value) {
-  return value
+  return String(value ?? "")
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
@@ -32,37 +40,43 @@ async function fetchJson(path) {
 async function loadStats() {
   try {
     const stats = await fetchJson("/stats");
-    statPublic.textContent = stats.public_profiles ?? "0";
-    statIdentities.textContent = stats.identities ?? "0";
-    statSkills.textContent = stats.skills ?? "0";
-    statWork.textContent = stats.work_offers ?? "0";
-    footerStatus.textContent = "Index: live";
+    setText(statPublic, stats.public_profiles ?? "0");
+    setText(statIdentities, stats.identities ?? "0");
+    setText(statSkills, stats.skills ?? "0");
+    setText(statWork, stats.work_offers ?? "0");
+    setText(footerStatus, "Index: live");
   } catch (err) {
-    footerStatus.textContent = "Index: unavailable";
+    setText(footerStatus, "Index: unavailable");
   }
 }
 
 async function loadMeshInfo() {
   try {
     const info = await fetchJson("/mesh/info");
-    meshPublic.textContent = info.public_ws ?? "—";
-    meshPeer.textContent = info.peer_id ?? "—";
+    setText(meshPublic, info.public_ws ?? "—");
+    setText(meshPeer, info.peer_id ?? "—");
   } catch (err) {
-    meshPublic.textContent = "—";
-    meshPeer.textContent = "—";
+    setText(meshPublic, "—");
+    setText(meshPeer, "—");
   }
 }
 
 function renderProfiles(profiles) {
   if (!profiles.length) {
-    directoryResults.innerHTML = "";
-    directoryMeta.textContent = "No public agents yet.";
+    if (directoryResults) {
+      directoryResults.innerHTML = "";
+    }
+    setText(directoryMeta, "No public agents yet.");
     return;
   }
 
-  directoryMeta.textContent = `${profiles.length} public agent${
-    profiles.length === 1 ? "" : "s"
-  } found`;
+  setText(
+    directoryMeta,
+    `${profiles.length} public agent${profiles.length === 1 ? "" : "s"} found`
+  );
+  if (!directoryResults) {
+    return;
+  }
   directoryResults.innerHTML = profiles
     .map((profile) => {
       const tags = Array.isArray(profile.tags) ? profile.tags : [];
@@ -91,11 +105,13 @@ function renderProfiles(profiles) {
         }
         return { link, label };
       });
+      const displayName = profile.display_name || profile.handle || "Unnamed agent";
+      const summary = profile.summary || "No public summary provided.";
       return `
       <article class="agent-card">
         <div>
-          <h3>${escapeHtml(profile.display_name)}</h3>
-          <p>${escapeHtml(profile.summary)}</p>
+          <h3>${escapeHtml(displayName)}</h3>
+          <p>${escapeHtml(summary)}</p>
         </div>
         <div class="pill-row">
           ${tags.map((tag) => `<span class="pill">${escapeHtml(tag)}</span>`).join("")}
@@ -115,7 +131,7 @@ function renderProfiles(profiles) {
                 .join("")}</div>`
             : ""
         }
-        <div class="agent-meta">${escapeHtml(profile.agent_id)}</div>
+        <div class="agent-meta">${escapeHtml(profile.agent_id || "—")}</div>
       </article>
     `;
     })
@@ -123,12 +139,15 @@ function renderProfiles(profiles) {
 }
 
 async function loadDirectory() {
+  if (!directoryMeta) {
+    return;
+  }
   directoryMeta.textContent = "Loading directory…";
   const params = new URLSearchParams();
-  if (searchInput.value.trim()) {
+  if (searchInput && searchInput.value.trim()) {
     params.set("q", searchInput.value.trim());
   }
-  if (capabilityInput.value.trim()) {
+  if (capabilityInput && capabilityInput.value.trim()) {
     params.set("capability", capabilityInput.value.trim());
   }
   params.set("limit", "24");
@@ -138,12 +157,21 @@ async function loadDirectory() {
     renderProfiles(Array.isArray(data.results) ? data.results : []);
   } catch (err) {
     directoryMeta.textContent = "Directory unavailable.";
-    directoryResults.innerHTML = "";
+    if (directoryResults) {
+      directoryResults.innerHTML = "";
+    }
   }
 }
 
 function setupReveal() {
   const targets = document.querySelectorAll(".reveal");
+  if (!targets.length) {
+    return;
+  }
+  if (!("IntersectionObserver" in window)) {
+    targets.forEach((target) => target.classList.add("visible"));
+    return;
+  }
   const observer = new IntersectionObserver(
     (entries) => {
       entries.forEach((entry) => {
@@ -158,17 +186,23 @@ function setupReveal() {
   targets.forEach((target) => observer.observe(target));
 }
 
-searchButton.addEventListener("click", () => loadDirectory());
-searchInput.addEventListener("keydown", (event) => {
-  if (event.key === "Enter") {
-    loadDirectory();
-  }
-});
-capabilityInput.addEventListener("keydown", (event) => {
-  if (event.key === "Enter") {
-    loadDirectory();
-  }
-});
+if (searchButton) {
+  searchButton.addEventListener("click", () => loadDirectory());
+}
+if (searchInput) {
+  searchInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      loadDirectory();
+    }
+  });
+}
+if (capabilityInput) {
+  capabilityInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      loadDirectory();
+    }
+  });
+}
 
 setupReveal();
 loadStats();
