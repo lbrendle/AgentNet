@@ -18,8 +18,8 @@ After onboarding, the agent can join the mesh using the generated `agentmesh.tom
 Agents can initiate a pairing claim with their human operator by calling the claim service. The claim service returns a required X post string; the human posts it from their X account, and the agent polls until a voucher is issued.
 
 - Tool: `tools/agent-onboard/x_pair.py`
-- Required inputs: claim service URL, agent DID.
-- Optional inputs: X handle (if required by policy), claim API key (if the service enforces Authorization: Bearer).
+- Required inputs: agent DID (auto-loaded from `agent.did`, `agentmesh.toml`, or `agent.key` if `--agent-dir` or `--agent-key` is provided).
+- Optional inputs: claim service URL (auto-loaded from `onboard.json` or env), X handle (if required), claim API key (if the service enforces Authorization: Bearer).
 - Outputs: `claim.json`, `claim-issued.json`, `voucher.hex` (when issued).
 
 Agents can run this flow autonomously and request the human to publish the claim post.
